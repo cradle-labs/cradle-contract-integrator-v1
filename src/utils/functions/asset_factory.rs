@@ -1,0 +1,100 @@
+use hedera::{ContractExecuteTransaction, ContractFunctionParameters, Hbar};
+use crate::utils::functions::commons::ContractFunctionProcessor;
+use crate::utils::functions::FunctionCallOutput;
+use crate::wallet::wallet::ActionWallet;
+use tokio::time::Duration;
+
+pub struct CreateAssetArgs {
+    pub name: String,
+    pub symbol: String,
+    pub acl_contract: String,
+    pub allow_list: u64
+}
+
+pub enum AssetFactoryFunctionInput {
+    CreateAsset(CreateAssetArgs)
+}
+
+
+pub enum AssetFactoryFunctionOutput {
+    CreateAsset(FunctionCallOutput<()>)
+}
+
+
+impl ContractFunctionProcessor<AssetFactoryFunctionOutput> for AssetFactoryFunctionInput {
+    async fn process(&self, wallet: &mut ActionWallet) -> anyhow::Result<AssetFactoryFunctionOutput> {
+
+        let mut transaction= ContractExecuteTransaction::new();
+        transaction.gas(5_000_000);
+        let mut params = ContractFunctionParameters::new();
+
+        match self {
+            AssetFactoryFunctionInput::CreateAsset(args)=>{
+                let contract_ids = wallet.get_contract_ids()?;
+                transaction.contract_id(contract_ids.asset_factory);
+                transaction.function("createAsset");
+                transaction.payable_amount(Hbar::new(5));
+                params.add_string(&args.name);
+                params.add_string(&args.symbol);
+                params.add_address(&args.acl_contract);
+                params.add_uint64(args.allow_list);
+
+                transaction.function_parameters(params.to_bytes(Some("createAsset")));
+
+                let response = transaction.execute_with_timeout(&wallet.client, Duration::from_secs(180)).await?;
+
+                let receipt = response.get_receipt(&wallet.client).await?;
+
+                let output = FunctionCallOutput {
+                    transaction_id: receipt.transaction_id.unwrap().to_string(),
+                    output: None
+                };
+
+
+                Ok(AssetFactoryFunctionOutput::CreateAsset(output))
+            }
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod asset_factory_tests {
+
+    use super::*;
+    use crate::wallet::wallet::ActionWallet;
+    use crate::utils::functions::*;
+    use anyhow::Result;
+
+
+    #[tokio::test]
+    pub async fn create_asset() -> Result<()> {
+
+        dotenv::dotenv()?;
+
+        let mut wallet = ActionWallet::from_env();
+
+        let res = wallet.execute(
+            ContractCallInput::AssetFactory(
+                AssetFactoryFunctionInput::CreateAsset(
+                    CreateAssetArgs {
+                        allow_list: 1,
+                        acl_contract: "0x00000000000000000000000000000000006ca272".to_string(),
+                        symbol: "CBR".to_string(),
+                        name: "Cradle Base Reserve".to_string()
+                    }
+                )
+            )
+        ).await?;
+
+
+        if let ContractCallOutput::AssetFactory(output) = res {
+            if let AssetFactoryFunctionOutput::CreateAsset(o) = output {
+                println!("Transaction ID:: {}", o.transaction_id);
+            }
+        }
+
+        Ok(())
+    }
+
+}
