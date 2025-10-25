@@ -18,8 +18,8 @@ pub mod cradle_account;
 pub mod commons;
 pub mod asset_manager;
 pub mod asset_factory;
-mod orderbook_settler;
-mod asset_lending_pool_factory;
+pub mod orderbook_settler;
+pub mod asset_lending_pool_factory;
 
 pub struct FunctionCallOutput<T> {
     pub transaction_id: String,

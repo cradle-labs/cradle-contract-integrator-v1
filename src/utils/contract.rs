@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use anyhow::{format_err, Result};
 use chrono::Utc;
-use hedera::{Client, ContractCreateFlow, ContractCreateTransaction, ContractFunctionParameters, FileAppendTransaction, FileCreateTransaction, FileId, Hbar};
+use hedera::{Client, ContractCreateFlow, ContractCreateTransaction, ContractFunctionParameters, ContractId, FileAppendTransaction, FileCreateTransaction, FileId, Hbar};
 use crate::utils::script_utils::{AssetIssuerConstructor, AssetLendingPoolConstructor, CradleAccountFactoryConstructor, DeployLendingPoolFactory, GetClientArgs, NativeAssetIssuerConstructor};
 use clap::Parser;
 use time::{Duration, OffsetDateTime};
@@ -254,8 +254,8 @@ impl Contract {
                             .await?;
 
                         let receipt = append_tx.get_receipt(&client).await?;
-                        println!("Appended to file ID: {}", fid);
-                        println!("receipt: {:?}", receipt.transaction_id.unwrap());
+                        // println!("Appended to file ID: {}", fid);
+                        // println!("receipt: {:?}", receipt.transaction_id.unwrap());
                     },
                     None=>{
                         let create_tx = FileCreateTransaction::new()
@@ -281,9 +281,8 @@ impl Contract {
         }
     }
 
-    pub async fn deploy_contract(&mut self)->Result<()> {
+    pub async fn deploy_contract(&mut self)->Result<ContractId> {
 
-        let expire_in_an_hour = OffsetDateTime::now_utc() + Duration::hours(1);
         let args = GetClientArgs::try_parse()?;
 
         let client = self.get_client(&args).await?;
@@ -297,31 +296,12 @@ impl Contract {
 
         let constructor_parameters = self.get_constructor_parameters()?;
 
-        // let contract_transaction_response = ContractCreateFlow::new()
-        //     .bytecode(self.bytecode.as_bytes().to_vec())
-        //     .constructor_parameters(constructor_parameters.to_bytes(None))
-        //     .gas(25000000)
-        //     .execute(&client)
-        //     .await?;
-
-        // sleep(TokioDuration::from_secs(30)).await;
-
-        // let contract_id = ContractCreateFlow::new()
-        //     .bytecode(self.bytecode.as_bytes().to_vec())
-        //     .max_chunks(10)
-        //     .gas(15_000_000)
-        //     .constructor_parameters(constructor_parameters.to_bytes(None))
-        //     .execute(&client).await?
-        //     .get_receipt(&client).await?
-        //     .contract_id.unwrap();
-
 
 
         let contract_id = ContractCreateTransaction::new()
             .admin_key(args.operator_key.public_key())
             .bytecode_file_id(new_file_id)
             .max_transaction_fee(Hbar::new(400))
-            // .sign_with_operator(&client)?
             .constructor_parameters(
                 constructor_parameters.to_bytes(None)
             )
@@ -332,8 +312,6 @@ impl Contract {
             .await?
             .contract_id.unwrap();
 
-        // let contract_receipt = contract_transaction_response.get_receipt(&client).await?;
-        // let new_contract_id = contract_receipt.contract_id.unwrap();
         println!("Contract id {contract_id}");
 
         if let Some(access_level) = self.access_level {
@@ -358,6 +336,6 @@ impl Contract {
                 println!("Grant access transaction id {}", output.transaction_id);
             }
         }
-        Ok(())
+        Ok(contract_id)
     }
 }
