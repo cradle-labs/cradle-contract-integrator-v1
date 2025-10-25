@@ -57,9 +57,9 @@ impl ContractFunctionProcessor<AssetLendingPoolFactoryFunctionOutput> for AssetL
                 params.add_uint64(args.liquidation_threshold);
                 params.add_uint64(args.liquidation_discount);
                 params.add_uint64(args.reserve_factor);
-                params.add_string(args.lending);
+                params.add_string(args.lending.clone());
                 params.add_address(args.yield_contract.as_str());
-                params.add_string(args.lending_pool);
+                params.add_string(args.lending_pool.clone());
 
                 transaction.function_with_parameters("createPool", &params);
 
@@ -76,7 +76,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFactoryFunctionOutput> for AssetL
                 let mut transaction = ContractCallQuery::new();
                 transaction.contract_id(contract_ids.asset_lending_pool_factory);
 
-                params.add_string(args.name);
+                params.add_string(args.name.clone());
 
                 transaction.function_with_parameters("getPool", &params);
 
