@@ -1,6 +1,7 @@
 use std::env;
 use anyhow::Result;
 use dialoguer::{Input, Select};
+use hedera::ContractId;
 use contract_integrator::utils::functions::asset_issuer::{
     AssetIssuerFunctionsInput, AssetIssuerFunctionsOutput, CreateAssetArgs, LockReservesArgs,
     ReleaseAssetArgs, LockAssetArgs, ReleaseReservesArgs,
@@ -19,10 +20,10 @@ pub async fn main() -> Result<()> {
         .items(&["Bridged Asset Issuer", "Native Asset Issuer"])
         .interact()?;
 
-    let issuer_contract_id = if issuer_selection == 0 {
-        env::var("BRIDGED_ASSET_ISSUER_CONTRACT_ID")?
+    let issuer_contract_id: ContractId = if issuer_selection == 0 {
+        env::var("BRIDGED_ASSET_ISSUER_CONTRACT_ID")?.parse()?
     } else {
-        env::var("NATIVE_ASSET_ISSUER_CONTRACT_ID")?
+        env::var("NATIVE_ASSET_ISSUER_CONTRACT_ID")?.parse()?
     };
 
     // Select which function to call
@@ -46,22 +47,22 @@ pub async fn main() -> Result<()> {
             let symbol: String = Input::new()
                 .with_prompt("Asset Symbol")
                 .interact()?;
-            let acl_contract: String = Input::new()
-                .with_prompt("ACL Contract Address (Solidity format)")
-                .with_default(env::var("ACCESS_CONTROLLER_CONTRACT_ID").unwrap_or_default().as_str())
+            let acl_contract: ContractId = Input::new()
+                .with_prompt("ACL Contract ID")
+                .default(env::var("ACCESS_CONTROLLER_CONTRACT_ID").unwrap_or_default().parse()?)
                 .interact()?;
             let allow_list: u64 = Input::new()
                 .with_prompt("Allow List Value")
-                .with_default(1)
+                .default(1)
                 .interact()?;
 
             ContractCallInput::BridgedAssetIssuer(
                 AssetIssuerFunctionsInput::CreateAsset(CreateAssetArgs {
                     name,
                     symbol,
-                    acl_contract,
+                    acl_contract: acl_contract.to_solidity_address()?,
                     allow_list,
-                    contract_id: issuer_contract_id,
+                    contract_id: issuer_contract_id.to_solidity_address()?,
                 }),
             )
         }
@@ -78,7 +79,7 @@ pub async fn main() -> Result<()> {
                 AssetIssuerFunctionsInput::LockReserves(LockReservesArgs {
                     user,
                     amount,
-                    contract_id: issuer_contract_id,
+                    contract_id: issuer_contract_id.to_solidity_address()?,
                 }),
             )
         }
@@ -103,7 +104,7 @@ pub async fn main() -> Result<()> {
                     symbol,
                     mint_amount,
                     unlock_amount,
-                    contract_id: issuer_contract_id,
+                    contract_id: issuer_contract_id.to_solidity_address()?,
                 }),
             )
         }
@@ -124,7 +125,7 @@ pub async fn main() -> Result<()> {
                     user,
                     asset,
                     amount,
-                    contract_id: issuer_contract_id,
+                    contract_id: issuer_contract_id.to_solidity_address()?,
                 }),
             )
         }
@@ -149,7 +150,7 @@ pub async fn main() -> Result<()> {
                     symbol,
                     burn_amount,
                     release_amount,
-                    contract_id: issuer_contract_id,
+                    contract_id: issuer_contract_id.to_solidity_address()?,
                 }),
             )
         }
