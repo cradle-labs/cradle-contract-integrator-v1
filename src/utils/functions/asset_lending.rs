@@ -96,7 +96,9 @@ pub enum AssetLendingPoolFunctionsInput {
     Withdraw(WithdrawArgs),
     Borrow(BorrowArgs),
     Repay(RepayArgs),
-    Liquidate(LiquidateArgs)
+    Liquidate(LiquidateArgs),
+    GetReserveAccount,
+    GetTreasuryAccount
 }
 
 pub struct GetUtilizationOutput {
@@ -159,6 +161,10 @@ pub struct GetPoolStatsOutput {
     pub supply_rate: u64
 }
 
+pub struct GetAccount {
+    pub account: String
+}
+
 pub enum AssetLendingPoolFunctionsOutput {
     GetUtilization(FunctionCallOutput<GetUtilizationOutput>),
     GetBorrowRate(FunctionCallOutput<GetBorrowRateOutput>),
@@ -181,6 +187,8 @@ pub enum AssetLendingPoolFunctionsOutput {
     Borrow(FunctionCallOutput<()>),
     Repay(FunctionCallOutput<()>),
     Liquidate(FunctionCallOutput<()>),
+    GetReserveAccount(FunctionCallOutput<GetAccount>),
+    GetTreasuryAccount(FunctionCallOutput<GetAccount>)
 }
 
 impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLendingPoolFunctionsInput {
@@ -638,6 +646,40 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::Liquidate(output))
+            },
+            AssetLendingPoolFunctionsInput::GetReserveAccount=> {
+                let mut params = ContractFunctionParameters::new();
+                query_transaction.function_with_parameters("getReserveAccount", &params);
+
+                let response = query_transaction.execute_with_timeout(&wallet.client, Duration::from_secs(180)).await?;
+
+                let reserve_account = response.get_address(0).unwrap();
+
+                let output = FunctionCallOutput {
+                    transaction_id: "".to_string(),
+                    output: Some(GetAccount {
+                        account: reserve_account
+                    })
+                };
+
+                Ok(AssetLendingPoolFunctionsOutput::GetReserveAccount(output))
+            },
+            AssetLendingPoolFunctionsInput::GetTreasuryAccount=> {
+                let params = ContractFunctionParameters::new();
+                query_transaction.function_with_parameters("getTreasury", &params);
+
+                let response = query_transaction.execute_with_timeout(&wallet.client, Duration::from_secs(180)).await?;
+
+                let reserve_account = response.get_address(0).unwrap();
+
+                let output = FunctionCallOutput {
+                    transaction_id: "".to_string(),
+                    output: Some(GetAccount {
+                        account: reserve_account
+                    })
+                };
+
+                Ok(AssetLendingPoolFunctionsOutput::GetReserveAccount(output))
             }
         }
     }

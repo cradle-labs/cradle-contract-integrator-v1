@@ -1,16 +1,20 @@
 use std::collections::HashMap;
-use std::fs;
+use std::{env, fs};
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use anyhow::{format_err, Result};
 use chrono::Utc;
 use hedera::{Client, ContractCreateFlow, ContractCreateTransaction, ContractFunctionParameters, FileAppendTransaction, FileCreateTransaction, FileId, Hbar};
-use crate::utils::script_utils::{AssetIssuerConstructor, AssetLendingPoolConstructor, CradleAccountFactoryConstructor, GetClientArgs, NativeAssetIssuerConstructor};
+use crate::utils::script_utils::{AssetIssuerConstructor, AssetLendingPoolConstructor, CradleAccountFactoryConstructor, DeployLendingPoolFactory, GetClientArgs, NativeAssetIssuerConstructor};
 use clap::Parser;
 use time::{Duration, OffsetDateTime};
 use tokio::time::{sleep,Duration as TokioDuration};
+use crate::utils::script_utils::DeployOrderBookSettler;
+use crate::utils::functions::access_controller::{AccessControllerArgs, AccessControllerFunctionsInput, AccessControllerFunctionsOutput};
+use crate::utils::functions::{ContractCallInput, ContractCallOutput};
 use crate::utils::script_utils::BaseAssetConstructor;
+use crate::wallet::wallet::ActionWallet;
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct Contract {
@@ -19,7 +23,8 @@ pub struct Contract {
     pub abi: Value,
     pub operator_account_id: String,
     pub operator_key: String,
-    pub network: String
+    pub network: String,
+    pub access_level: Option<u64>
 }
 
 
@@ -30,13 +35,43 @@ impl Contract {
 
         println!("Creating contract {}", name);
 
+        let access_level: Option<u64> = {
+            match name.as_str() {
+                "AssetFactory"=> {
+                    Some(0)
+                },
+                "CradleAccountFactory"=> {
+                    Some(0)
+                },
+                "BaseAsset"=>{
+                    // might require its own factory
+                   Some(0)
+                },
+                "BridgedAssetIssuer"=>{
+                    Some(1)
+                },
+                "NativeAssetIssuer"=>{
+                    Some(1)
+                },
+                "NativeAsset"=>{
+                    // might require its own factory
+                    Some(1)
+                },
+                "AssetLendingPool"=>{
+                    Some(2)
+                }
+                _=>None
+            }
+        };
+
         Self {
             name,
             bytecode,
             abi,
             network: args.network,
             operator_account_id: args.operator_account_id.to_string(),
-            operator_key: args.operator_key.to_string()
+            operator_key: args.operator_key.to_string(),
+            access_level
         }
     }
 
@@ -89,6 +124,9 @@ impl Contract {
                 params
             },
             "AssetFactory"=>{
+                let acl_contract = env::var("ACL_CONTRACT")?;
+
+                params.add_address(acl_contract.as_str());
                 params
             },
             "CradleAccountFactory"=>{
@@ -112,7 +150,7 @@ impl Contract {
                 let args = AssetIssuerConstructor::try_parse()?;
                 params.add_address(&args.acl_contract);
                 params.add_uint64(args.allow_list);
-                params.add_address(&args.reserve_token);
+                params.add_address(&args.reserve_asset_id.to_solidity_address()?);
 
                 params
             },
@@ -120,7 +158,7 @@ impl Contract {
                 let args = AssetIssuerConstructor::try_parse()?;
                 params.add_address(&args.acl_contract);
                 params.add_uint64(args.allow_list);
-                params.add_address(&args.reserve_token);
+                params.add_address(&args.reserve_asset_id.to_solidity_address()?);
 
                 params
             },
@@ -147,7 +185,7 @@ impl Contract {
                 params.add_uint64(args.liquidation_threshold); // liquidation threshold
                 params.add_uint64(args.liquidation_discount); // liquidation discount
                 params.add_uint64(args.reserve_factor); // reserve factor
-                params.add_address(&args.lending); // lending
+                params.add_address(&args.lending.to_solidity_address()?); // lending
                 params.add_string(&args.yield_asset); // yield asset
                 params.add_string(&args.yield_asset_symbol); // yield asset symbol
                 params.add_string(&args.lending_pool); // lending pool
@@ -156,7 +194,21 @@ impl Contract {
 
                 params
             },
-            _=>return Err(format_err!("Contract not supported yet"))
+            "LendingPoolFactory"=>{
+                let args = DeployLendingPoolFactory::try_parse()?;
+
+                params.add_address(args.acl_contract.as_str());
+
+                params
+            },
+            "CradleOrderBookSettler"=> {
+                let args = DeployOrderBookSettler::try_parse()?;
+
+                params.add_address(args.acl_contract.as_str());
+
+                params
+            }
+            _=>return Err(format_err!("Contract deployment not supported yet, this is a local error :) "))
         };
 
         Ok(values)
@@ -166,7 +218,7 @@ impl Contract {
         let expire_in_an_hour = OffsetDateTime::now_utc() + Duration::hours(1);
         let contents_full = self.bytecode.as_bytes();
         println!("File size :: {:?}", contents_full.len());
-        const CHUNK_SIZE: usize = 2048;
+        const CHUNK_SIZE: usize = 1024;
         if contents_full.len() <= CHUNK_SIZE {
             let file_transaction_response = FileCreateTransaction::new()
                 .keys([args.operator_key.public_key()])
@@ -283,6 +335,29 @@ impl Contract {
         // let contract_receipt = contract_transaction_response.get_receipt(&client).await?;
         // let new_contract_id = contract_receipt.contract_id.unwrap();
         println!("Contract id {contract_id}");
+
+        if let Some(access_level) = self.access_level {
+            println!("Needs to be added to access controller");
+
+            let mut wallet = ActionWallet::from_env();
+
+            let evm_address = contract_id.to_solidity_address()?;
+
+            let res = wallet.execute(
+                ContractCallInput::AccessController(
+                    AccessControllerFunctionsInput::GrantAccess(
+                        AccessControllerArgs {
+                            account: evm_address,
+                            level: access_level
+                        }
+                    )
+                )
+            ).await?;
+
+            if let ContractCallOutput::AccessController(AccessControllerFunctionsOutput::GrantAccess(output)) = res {
+                println!("Grant access transaction id {}", output.transaction_id);
+            }
+        }
         Ok(())
     }
 }

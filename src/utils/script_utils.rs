@@ -1,4 +1,4 @@
-use hedera::{AccountId, PrivateKey};
+use hedera::{AccountId, ContractId, PrivateKey};
 use serde::{Deserialize, Serialize};
 use clap::Parser;
 
@@ -28,7 +28,7 @@ pub struct AssetIssuerConstructor {
     #[clap(long,env)]
     pub allow_list: u64,
     #[clap(long,env)]
-    pub reserve_token: String
+    pub reserve_asset_id: ContractId
 }
 
 #[derive(Parser, Debug)]
@@ -58,7 +58,7 @@ pub struct AssetLendingPoolConstructor {
     #[clap(long,env)]
     pub reserve_factor: u64,
     #[clap(long,env)]
-    pub lending: String,
+    pub lending: ContractId,
     #[clap(long,env)]
     pub yield_asset: String,
     #[clap(long,env)]
@@ -71,6 +71,18 @@ pub struct AssetLendingPoolConstructor {
     pub allow_list: u64
 }
 
+#[derive(Parser,Debug)]
+pub struct DeployLendingPoolFactory {
+    #[clap(long,env)]
+    pub acl_contract: String
+}
+
+
+#[derive(Parser,Debug)]
+pub struct DeployOrderBookSettler {
+    #[clap(long,env)]
+    pub acl_contract: String
+}
 
 #[derive(Parser, Debug)]
 pub struct BaseAssetConstructor {

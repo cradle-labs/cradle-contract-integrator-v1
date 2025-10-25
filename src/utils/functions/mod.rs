@@ -6,6 +6,7 @@ use crate::utils::functions::asset_manager::{AssetManagerFunctionInput, AssetMan
 use crate::utils::functions::commons::ContractFunctionProcessor;
 use crate::utils::functions::cradle_account::{CradleAccountFunctionInput, CradleAccountFunctionOutput};
 use crate::utils::functions::cradle_account_factory::{CradleAccountFactoryFunctionsInput, CradleAccountFactoryFunctionsOutput};
+use crate::utils::functions::orderbook_settler::{OrderBookSettlerFunctionInput, OrderBookSettlerFunctionOutput};
 use crate::wallet::wallet::ActionWallet;
 
 pub mod access_controller;
@@ -16,6 +17,7 @@ pub mod cradle_account;
 pub mod commons;
 pub mod asset_manager;
 pub mod asset_factory;
+mod orderbook_settler;
 
 pub struct FunctionCallOutput<T> {
     pub transaction_id: String,
@@ -31,7 +33,8 @@ pub enum ContractCallInput {
     AssetLendingPool(AssetLendingPoolFunctionsInput),
     CradleAccount(CradleAccountFunctionInput),
     AssetManager(AssetManagerFunctionInput),
-    AssetFactory(AssetFactoryFunctionInput)
+    AssetFactory(AssetFactoryFunctionInput),
+    OrderBookSettler(OrderBookSettlerFunctionInput)
     // TODO: add cradle accounts
 }
 
@@ -45,7 +48,8 @@ pub enum ContractCallOutput {
     AssetLendingPool(AssetLendingPoolFunctionsOutput),
     CradleAccount(CradleAccountFunctionOutput),
     AssetManager(AssetManagerFunctionOutput),
-    AssetFactory(AssetFactoryFunctionOutput)
+    AssetFactory(AssetFactoryFunctionOutput),
+    OrderBookSettler(OrderBookSettlerFunctionOutput)
 }
 
 
@@ -83,6 +87,10 @@ impl ContractFunctionProcessor<ContractCallOutput> for ContractCallInput {
             ContractCallInput::AssetFactory(args)=>{
                 let output = args.process(wallet).await?;
                 Ok(ContractCallOutput::AssetFactory(output))
+            },
+            ContractCallInput::OrderBookSettler(args)=>{
+                let output = args.process(wallet).await?;
+                Ok(ContractCallOutput::OrderBookSettler(output))
             }
         }
     }

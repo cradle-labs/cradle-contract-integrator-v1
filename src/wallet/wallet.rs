@@ -1,3 +1,4 @@
+use std::iter;
 use std::str::FromStr;
 use hedera::{AccountId, Client, PrivateKey};
 use anyhow::{anyhow, Result};
@@ -44,13 +45,22 @@ impl ActionWallet {
     
     
     pub fn from_env()->Self {
+        #[cfg(test)]
+        let args = ActionWalletArgs::parse_from(iter::empty::<String>());
+
+        #[cfg(not(test))]
         let args = ActionWalletArgs::parse();
         
         Self::new(args.operator_account_id, args.operator_key, args.network)
     }
 
     pub fn get_contract_ids(&self) -> Result<CradleContractIds> {
+        #[cfg(test)]
+        let ids = CradleContractIds::parse_from(iter::empty::<String>());
+
+        #[cfg(not(test))]
         let ids = CradleContractIds::parse();
+
         Ok(ids)
     }
 

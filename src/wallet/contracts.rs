@@ -14,5 +14,7 @@ pub struct CradleContractIds {
     #[clap(long, env)]
     pub asset_lending_pool_contract_id: ContractId,
     #[clap(long, env)]
-    pub asset_factory: ContractId
+    pub asset_factory: ContractId,
+    #[clap(long,env)]
+    pub orderbook_settler: ContractId
 }

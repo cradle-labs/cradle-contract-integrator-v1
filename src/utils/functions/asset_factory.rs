@@ -32,8 +32,9 @@ impl ContractFunctionProcessor<AssetFactoryFunctionOutput> for AssetFactoryFunct
             AssetFactoryFunctionInput::CreateAsset(args)=>{
                 let contract_ids = wallet.get_contract_ids()?;
                 transaction.contract_id(contract_ids.asset_factory);
+                transaction.max_transaction_fee(Hbar::new(60));
                 transaction.function("createAsset");
-                transaction.payable_amount(Hbar::new(5));
+                transaction.payable_amount(Hbar::new(50));
                 params.add_string(&args.name);
                 params.add_string(&args.symbol);
                 params.add_address(&args.acl_contract);
@@ -60,7 +61,7 @@ impl ContractFunctionProcessor<AssetFactoryFunctionOutput> for AssetFactoryFunct
 
 #[cfg(test)]
 mod asset_factory_tests {
-
+    use std::env;
     use super::*;
     use crate::wallet::wallet::ActionWallet;
     use crate::utils::functions::*;
@@ -70,7 +71,11 @@ mod asset_factory_tests {
     #[tokio::test]
     pub async fn create_asset() -> Result<()> {
 
-        dotenv::dotenv()?;
+        dotenvy::dotenv()?;
+
+        let n = env::var("NETWORK")?;
+
+        println!("Network {}", n);
 
         let mut wallet = ActionWallet::from_env();
 
