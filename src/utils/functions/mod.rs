@@ -2,6 +2,7 @@ use crate::utils::functions::access_controller::{AccessControllerFunctionsInput,
 use crate::utils::functions::asset_factory::{AssetFactoryFunctionInput, AssetFactoryFunctionOutput};
 use crate::utils::functions::asset_issuer::{AssetIssuerFunctionsInput, AssetIssuerFunctionsOutput};
 use crate::utils::functions::asset_lending::{AssetLendingPoolFunctionsInput, AssetLendingPoolFunctionsOutput};
+use crate::utils::functions::asset_lending_pool_factory::{AssetLendingPoolFactoryFunctionInput, AssetLendingPoolFactoryFunctionOutput};
 use crate::utils::functions::asset_manager::{AssetManagerFunctionInput, AssetManagerFunctionOutput};
 use crate::utils::functions::commons::ContractFunctionProcessor;
 use crate::utils::functions::cradle_account::{CradleAccountFunctionInput, CradleAccountFunctionOutput};
@@ -18,6 +19,7 @@ pub mod commons;
 pub mod asset_manager;
 pub mod asset_factory;
 mod orderbook_settler;
+mod asset_lending_pool_factory;
 
 pub struct FunctionCallOutput<T> {
     pub transaction_id: String,
@@ -34,7 +36,8 @@ pub enum ContractCallInput {
     CradleAccount(CradleAccountFunctionInput),
     AssetManager(AssetManagerFunctionInput),
     AssetFactory(AssetFactoryFunctionInput),
-    OrderBookSettler(OrderBookSettlerFunctionInput)
+    OrderBookSettler(OrderBookSettlerFunctionInput),
+    AssetLendingPoolFactory(AssetLendingPoolFactoryFunctionInput)
     // TODO: add cradle accounts
 }
 
@@ -49,7 +52,8 @@ pub enum ContractCallOutput {
     CradleAccount(CradleAccountFunctionOutput),
     AssetManager(AssetManagerFunctionOutput),
     AssetFactory(AssetFactoryFunctionOutput),
-    OrderBookSettler(OrderBookSettlerFunctionOutput)
+    OrderBookSettler(OrderBookSettlerFunctionOutput),
+    AssetLendingPoolFactory(AssetLendingPoolFactoryFunctionOutput)
 }
 
 
@@ -91,6 +95,10 @@ impl ContractFunctionProcessor<ContractCallOutput> for ContractCallInput {
             ContractCallInput::OrderBookSettler(args)=>{
                 let output = args.process(wallet).await?;
                 Ok(ContractCallOutput::OrderBookSettler(output))
+            },
+            ContractCallInput::AssetLendingPoolFactory(args)=> {
+                let output = args.process(wallet).await?;
+                Ok(ContractCallOutput::AssetLendingPoolFactory(output))
             }
         }
     }
