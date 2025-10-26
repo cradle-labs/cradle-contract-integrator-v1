@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use hedera::{ContractCallQuery, ContractExecuteTransaction, ContractFunctionParameters};
 use num_bigint::BigUint;
 use crate::utils::functions::commons::ContractFunctionProcessor;
@@ -158,7 +159,9 @@ pub struct GetPoolStatsOutput {
     pub liquidity: u64,
     pub utilization: u64,
     pub borrow_rate: u64,
-    pub supply_rate: u64
+    pub supply_rate: u64,
+    pub borrow_index: u64,
+    pub supply_index: u64
 }
 
 pub struct GetAccount {
@@ -182,9 +185,9 @@ pub enum AssetLendingPoolFunctionsOutput {
     GetMaxBorrowAmount(FunctionCallOutput<GetMaxBorrowAmountOutput>),
     IsPositionLiquidatable(FunctionCallOutput<IsPositionLiquidatableOutput>),
     GetPoolStats(FunctionCallOutput<GetPoolStatsOutput>),
-    Deposit(FunctionCallOutput<()>),
-    Withdraw(FunctionCallOutput<()>),
-    Borrow(FunctionCallOutput<()>),
+    Deposit(FunctionCallOutput<(u64, u64)>),
+    Withdraw(FunctionCallOutput<(u64, u64)>),
+    Borrow(FunctionCallOutput<u64>),
     Repay(FunctionCallOutput<()>),
     Liquidate(FunctionCallOutput<()>),
     GetReserveAccount(FunctionCallOutput<GetAccount>),
@@ -522,6 +525,8 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 let utilization: u64 = response.get_u256(3).unwrap().try_into()?;
                 let borrow_rate: u64 = response.get_u256(4).unwrap().try_into()?;
                 let supply_rate: u64 = response.get_u256(5).unwrap().try_into()?;
+                let borrow_index: u64 = response.get_u256(6).unwrap().try_into()?;
+                let supply_index: u64 = response.get_u256(7).unwrap().try_into()?;
 
                 let output = FunctionCallOutput {
                     transaction_id: "".to_string(),
@@ -531,7 +536,9 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                         liquidity,
                         utilization,
                         borrow_rate,
-                        supply_rate
+                        supply_rate,
+                        borrow_index,
+                        supply_index
                     })
                 };
 
@@ -551,9 +558,15 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
+                let record = response.get_record(&mut wallet.client).await?;
+
+                let res = record.contract_function_result.ok_or_else(|| anyhow!("Failed to get function result"))?;
+                let supply_index:u64 = res.get_u256(0).ok_or_else(|| anyhow!("Failed to get supply index"))?.try_into()?;
+                let yield_amount:u64 = res.get_u256(1).ok_or_else(|| anyhow!("Failed to get supply index"))?.try_into()?;
+
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: Some((supply_index, yield_amount))
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::Deposit(output))
@@ -572,9 +585,16 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
+                let record = response.get_record(&mut wallet.client).await?;
+
+                let res = record.contract_function_result.ok_or_else(|| anyhow!("Failed to get function result"))?;
+                let supply_index:u64 = res.get_u256(0).ok_or_else(|| anyhow!("Failed to get supply index"))?.try_into()?;
+                let underlying_value:u64 = res.get_u256(1).ok_or_else(|| anyhow!("Failed to get supply index"))?.try_into()?;
+
+
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: Some((supply_index, underlying_value))
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::Withdraw(output))
@@ -595,9 +615,14 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
+                let record = response.get_record(&mut wallet.client).await?;
+                let res = record.contract_function_result.ok_or_else(|| anyhow!("Failed to get function result"))?;
+                let borrow_index:u64 = res.get_u256(0).ok_or_else(|| anyhow!("Failed to get borrow index"))?.try_into()?;
+
+
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: Some(borrow_index)
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::Borrow(output))
@@ -648,7 +673,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 Ok(AssetLendingPoolFunctionsOutput::Liquidate(output))
             },
             AssetLendingPoolFunctionsInput::GetReserveAccount=> {
-                let mut params = ContractFunctionParameters::new();
+                let params = ContractFunctionParameters::new();
                 query_transaction.function_with_parameters("getReserveAccount", &params);
 
                 let response = query_transaction.execute_with_timeout(&wallet.client, Duration::from_secs(180)).await?;
