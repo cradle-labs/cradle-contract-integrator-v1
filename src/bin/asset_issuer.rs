@@ -166,6 +166,8 @@ pub async fn main() -> Result<()> {
             match output {
                 AssetIssuerFunctionsOutput::CreateAsset(result) => {
                     println!("✓ Asset Created");
+                    println!("ASSET MANAGER ADDRESS: {}", result.output.as_ref().unwrap().asset_manager);
+                    println!("TOKEN ADDRESS: {}", result.output.as_ref().unwrap().token);
                     println!("Transaction ID: {}", result.transaction_id);
                 }
                 AssetIssuerFunctionsOutput::LockReserves(result) => {
@@ -190,6 +192,8 @@ pub async fn main() -> Result<()> {
             match output {
                 AssetIssuerFunctionsOutput::CreateAsset(result) => {
                     println!("✓ Asset Created");
+                    println!("Asset Manager Address: {}", result.output.as_ref().unwrap().asset_manager);
+                    println!("Token Address: {}", result.output.as_ref().unwrap().token);
                     println!("Transaction ID: {}", result.transaction_id);
                 }
                 AssetIssuerFunctionsOutput::LockReserves(result) => {

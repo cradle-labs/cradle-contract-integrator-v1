@@ -24,10 +24,10 @@ pub async fn main() -> Result<()> {
     let ask_asset: String = Input::new()
         .with_prompt("Ask Asset Address")
         .interact()?;
-    let bid_asset_amount: String = Input::new()
+    let bid_asset_amount: u64 = Input::new()
         .with_prompt("Bid Asset Amount")
         .interact()?;
-    let ask_asset_amount: String = Input::new()
+    let ask_asset_amount: u64 = Input::new()
         .with_prompt("Ask Asset Amount")
         .interact()?;
 

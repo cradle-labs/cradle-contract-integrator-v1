@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use std::time::Duration;
+use anyhow::anyhow;
 use hedera::{ContractExecuteTransaction, ContractFunctionParameters, ContractId};
 use crate::utils::functions::commons::ContractFunctionProcessor;
 use crate::utils::functions::FunctionCallOutput;
@@ -52,9 +53,14 @@ pub enum AssetIssuerFunctionsInput {
 }
 
 
+pub struct CreateAssetResult {
+    pub asset_manager: String,
+    pub token: String
+}
+
 
 pub enum AssetIssuerFunctionsOutput {
-    CreateAsset(FunctionCallOutput<()>),
+    CreateAsset(FunctionCallOutput<CreateAssetResult>),
     LockReserves(FunctionCallOutput<()>),
     ReleaseAsset(FunctionCallOutput<()>),
     LockAsset(FunctionCallOutput<()>),
@@ -84,9 +90,19 @@ impl ContractFunctionProcessor<AssetIssuerFunctionsOutput> for AssetIssuerFuncti
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
+                let record = response.get_record(&mut wallet.client).await?;
+                let result = record.contract_function_result.ok_or_else(|| anyhow!("Failed to find contract result"))?;
+                let asset_manager = result.get_address(0).ok_or_else(|| anyhow!("Failed to find asset manager"))?;
+                let token_address = result.get_address(1).ok_or_else(|| anyhow!("Failed to find token address"))?;
+
+
+
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: Some(CreateAssetResult {
+                        token: token_address,
+                        asset_manager
+                    })
                 };
 
                 Ok(AssetIssuerFunctionsOutput::CreateAsset(output))

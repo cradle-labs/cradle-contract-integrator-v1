@@ -18,7 +18,7 @@ pub struct ActionWalletArgs {
     network: String
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ActionWallet {
     pub account_id: String,
     private_key: String,

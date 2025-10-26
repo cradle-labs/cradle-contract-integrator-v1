@@ -436,13 +436,13 @@ async fn create_tokens(
         ))
         .await?;
 
-    let base_asset_id = if let ContractCallOutput::AssetFactory(
+    let base_asset_address = if let ContractCallOutput::AssetFactory(
         AssetFactoryFunctionOutput::CreateAsset(output),
     ) = base_asset_result
     {
         println!("  ✓ Base Asset created!");
         println!("  📋 Transaction ID: {}", output.transaction_id);
-        output.transaction_id
+        output.output.unwrap().token
     } else {
         anyhow::bail!("Unexpected response from Asset Factory")
     };
@@ -470,13 +470,13 @@ async fn create_tokens(
         ))
         .await?;
 
-    let yield_asset_id = if let ContractCallOutput::AssetFactory(
+    let yield_asset_address = if let ContractCallOutput::AssetFactory(
         AssetFactoryFunctionOutput::CreateAsset(output),
     ) = yield_asset_result
     {
         println!("  ✓ Yield Asset created!");
         println!("  📋 Transaction ID: {}", output.transaction_id);
-        output.transaction_id
+        output.output.unwrap().token
     } else {
         anyhow::bail!("Unexpected response from Asset Factory")
     };
@@ -484,10 +484,10 @@ async fn create_tokens(
     println!("└────────────────────────────────────────────┘\n");
 
     println!("✓ Tokens created successfully:");
-    println!("  Base Asset: {}", base_asset_id);
-    println!("  Yield Asset: {}", yield_asset_id);
+    println!("  Base Asset: {}", base_asset_address);
+    println!("  Yield Asset: {}", yield_asset_address);
 
-    Ok((base_asset_id, yield_asset_id))
+    Ok((base_asset_address, yield_asset_address))
 }
 
 fn update_env_file(deployed_ids: &HashMap<String, String>) -> Result<()> {

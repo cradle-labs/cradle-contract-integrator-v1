@@ -32,8 +32,13 @@ pub async fn main()->Result<()>{
     ).await?;
 
     if let ContractCallOutput::AssetFactory(AssetFactoryFunctionOutput::CreateAsset(output)) = res {
-
-        println!("Transaction ID:: {:?}", output.transaction_id);
+        
+        let _asset_manager_address = output.output.as_ref().unwrap().asset_manager.clone();
+        let _token_address = output.output.as_ref().unwrap().token.clone();
+        
+        println!("Transaction ID:: {:?}", output.transaction_id.clone());
+        println!("Asset Manager Address:: {:?}", _asset_manager_address);
+        println!("Token Address:: {:?}", _token_address);
     }
 
 

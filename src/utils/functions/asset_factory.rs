@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use hedera::{ContractExecuteTransaction, ContractFunctionParameters, Hbar};
 use crate::utils::functions::commons::ContractFunctionProcessor;
 use crate::utils::functions::FunctionCallOutput;
@@ -15,9 +16,13 @@ pub enum AssetFactoryFunctionInput {
     CreateAsset(CreateAssetArgs)
 }
 
+pub struct CreateAssetOutput {
+    pub asset_manager: String,
+    pub token: String
+}
 
 pub enum AssetFactoryFunctionOutput {
-    CreateAsset(FunctionCallOutput<()>)
+    CreateAsset(FunctionCallOutput<CreateAssetOutput>)
 }
 
 
@@ -46,9 +51,20 @@ impl ContractFunctionProcessor<AssetFactoryFunctionOutput> for AssetFactoryFunct
 
                 let receipt = response.get_receipt(&wallet.client).await?;
 
+                let record = response.get_record(&wallet.client).await?;
+
+                let returned = record.contract_function_result.ok_or_else(||anyhow!("Failed to get function result"))?;
+
+                let asset_manager_address = returned.get_address(0).ok_or_else(||anyhow!("Failed to get asset manager address"))?;
+                let token_address = returned.get_address(1).ok_or_else(||anyhow!("Failed to get token address"))?;
+
+
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: Some(CreateAssetOutput {
+                        asset_manager: asset_manager_address,
+                        token: token_address
+                    })
                 };
 
 

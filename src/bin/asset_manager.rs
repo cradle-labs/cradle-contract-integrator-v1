@@ -119,6 +119,9 @@ pub async fn main() -> Result<()> {
                     println!("✓ Self Associated");
                     println!("Transaction ID: {}", result.transaction_id);
                 }
+                _=>{
+                    unimplemented!()
+                }
             }
         }
         _ => println!("Unexpected contract response"),
