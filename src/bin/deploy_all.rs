@@ -3,7 +3,7 @@ use dialoguer::{Confirm, Input};
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use hedera::ContractId;
 use contract_integrator::utils::contract::Contract;
@@ -12,6 +12,8 @@ use contract_integrator::utils::functions::asset_factory::{
 };
 use contract_integrator::utils::functions::{ContractCallInput, ContractCallOutput};
 use contract_integrator::wallet::wallet::ActionWallet;
+use serde::{Deserialize, Serialize};
+use chrono::Utc;
 
 #[derive(Debug, Clone)]
 struct DeploymentStep {
@@ -21,9 +23,126 @@ struct DeploymentStep {
     order: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum DeploymentStatus {
+    Pending,
+    InProgress,
+    Completed,
+    Failed,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum DeploymentMode {
+    Full,
+    ContractsOnly,
+    TokensOnly,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ContractDeploymentState {
+    order: usize,
+    name: String,
+    contract_name: String,
+    env_var: String,
+    status: DeploymentStatus,
+    contract_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct TokenState {
+    name: String,
+    status: DeploymentStatus,
+    id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DeploymentState {
+    started_at: String,
+    last_updated: String,
+    deployments: Vec<ContractDeploymentState>,
+    tokens: Vec<TokenState>,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenv::dotenv().ok();
+
+    // Load or create deployment state
+    let mut state = load_or_create_state()?;
+    let state_path = get_state_file_path();
+    let has_existing_state = state_path.exists() && state.deployments.iter().any(|d| {
+        !matches!(d.status, DeploymentStatus::Pending)
+    }) || state.tokens.iter().any(|t| {
+        !matches!(t.status, DeploymentStatus::Pending)
+    });
+
+    if has_existing_state {
+        println!("\n⚠️  Found existing deployment state");
+        let resume_option = {
+            let options = vec![
+                "Resume from failed deployments",
+                "Redeploy specific contracts",
+                "Start fresh deployment",
+            ];
+            dialoguer::Select::new()
+                .items(&options)
+                .default(0)
+                .interact()?
+        };
+
+        match resume_option {
+            0 => {
+                println!("Resuming from previous deployment...");
+                apply_state_to_env(&state);
+            }
+            1 => {
+                println!("\nSelect contracts to redeploy:");
+                let contract_names: Vec<String> = state.deployments.iter()
+                    .map(|d| format!("{} ({})", d.name, d.contract_name))
+                    .collect();
+
+                let selected = dialoguer::MultiSelect::new()
+                    .items(&contract_names)
+                    .interact()?;
+
+                if !selected.is_empty() {
+                    println!("\nResetting selected contracts to pending...");
+                    for idx in selected {
+                        if idx < state.deployments.len() {
+                            state.deployments[idx].status = DeploymentStatus::Pending;
+                            state.deployments[idx].contract_id = None;
+                        }
+                    }
+                    save_state(&state)?;
+                    apply_state_to_env(&state);
+                } else {
+                    println!("No contracts selected, resuming normally...");
+                    apply_state_to_env(&state);
+                }
+            }
+            _ => {
+                println!("Starting fresh deployment...");
+                state = create_initial_state();
+            }
+        }
+    }
+
+    // Ask user what they want to deploy
+    let deployment_mode = {
+        println!("\nWhat would you like to deploy?");
+        let selection = dialoguer::Select::new()
+            .items(&["Full deployment (contracts + tokens)", "Contracts only", "Tokens only"])
+            .default(0)
+            .interact()?;
+
+        match selection {
+            0 => DeploymentMode::Full,
+            1 => DeploymentMode::ContractsOnly,
+            2 => DeploymentMode::TokensOnly,
+            _ => DeploymentMode::Full,
+        }
+    };
 
     // Define deployment steps
     let steps = vec![
@@ -76,22 +195,47 @@ async fn main() -> Result<()> {
     println!("║         Interactive Deployer          ║");
     println!("╚════════════════════════════════════════╝\n");
 
-    // Show deployment plan
-    println!("Deployment Plan (8 steps):");
-    println!("  1. Access Controller");
-    println!("  2. Asset Factory");
-    println!("  2.5. Create Base Asset Token");
-    println!("  2.5. Create Yield Asset Token");
-    println!("  3. Cradle Account Factory");
-    println!("  4. Bridged Asset Issuer");
-    println!("  5. Native Asset Issuer");
-    println!("  6. Cradle Order Book Settler");
-    println!("  7. Lending Pool Factory");
+    // Show deployment plan based on mode
+    match deployment_mode {
+        DeploymentMode::Full => {
+            println!("Deployment Plan (8 steps):");
+            println!("  1. Access Controller");
+            println!("  2. Asset Factory");
+            println!("  2.5. Create Base Asset Token");
+            println!("  2.5. Create Yield Asset Token");
+            println!("  3. Cradle Account Factory");
+            println!("  4. Bridged Asset Issuer");
+            println!("  5. Native Asset Issuer");
+            println!("  6. Cradle Order Book Settler");
+            println!("  7. Lending Pool Factory");
+        }
+        DeploymentMode::ContractsOnly => {
+            println!("Deployment Plan (7 contract steps):");
+            println!("  1. Access Controller");
+            println!("  2. Asset Factory");
+            println!("  3. Cradle Account Factory");
+            println!("  4. Bridged Asset Issuer");
+            println!("  5. Native Asset Issuer");
+            println!("  6. Cradle Order Book Settler");
+            println!("  7. Lending Pool Factory");
+        }
+        DeploymentMode::TokensOnly => {
+            println!("Deployment Plan (token creation):");
+            println!("  1. Create Base Asset Token");
+            println!("  2. Create Yield Asset Token");
+        }
+    }
     println!();
 
     // Confirm start
+    let prompt_text = match deployment_mode {
+        DeploymentMode::Full => "Ready to begin deployment?",
+        DeploymentMode::ContractsOnly => "Ready to deploy contracts?",
+        DeploymentMode::TokensOnly => "Ready to create tokens?",
+    };
+
     if !Confirm::new()
-        .with_prompt("Ready to begin contract deployments?")
+        .with_prompt(prompt_text)
         .interact()?
     {
         println!("Deployment cancelled.");
@@ -101,8 +245,29 @@ async fn main() -> Result<()> {
     // Store deployed contract IDs
     let mut deployed_ids: HashMap<String, String> = HashMap::new();
 
-    // Deploy contracts 1-6
-    for (_idx, step) in steps.iter().take(6).enumerate() {
+    // Skip already completed deployments when resuming
+    for deployment in &state.deployments {
+        if let Some(contract_id) = &deployment.contract_id {
+            deployed_ids.insert(deployment.env_var.clone(), contract_id.clone());
+        }
+    }
+    for token in &state.tokens {
+        if let Some(id) = &token.id {
+            deployed_ids.insert(token.name.clone(), id.clone());
+        }
+    }
+
+    // Deploy contracts 1-7 (including Lending Pool Factory) - skip if TokensOnly mode
+    if !matches!(deployment_mode, DeploymentMode::TokensOnly) {
+        for (_idx, step) in steps.iter().enumerate() {
+        // Skip if already completed
+        let deployment_state = state.deployments.iter().find(|d| d.env_var == step.env_var);
+        if let Some(ds) = deployment_state {
+            if matches!(ds.status, DeploymentStatus::Completed) {
+                println!("\n✓ {} already deployed (skipping)", step.name);
+                continue;
+            }
+        }
         // After Asset Factory (step 2), create tokens
         if step.order == 2 {
             println!(
@@ -112,106 +277,58 @@ async fn main() -> Result<()> {
             println!("│ Deploying: {:<35} │", step.name);
             println!("└───────────────────────────────────────────────┘");
 
-            // Deploy Asset Factory first
-            if !Confirm::new()
-                .with_prompt(format!(
-                    "Deploy {} ({})?",
-                    step.name, step.contract_name
-                ))
-                .interact()?
-            {
-                println!("  ⊘ Skipped {}", step.name);
-                continue;
-            }
+            // Deploy Asset Factory with unlimited retries
+            if deploy_contract_with_unlimited_retries(step, &mut deployed_ids, &mut state).await? {
+                // Now create tokens immediately after Asset Factory (only if not ContractsOnly mode)
+                if !matches!(deployment_mode, DeploymentMode::ContractsOnly) {
+                    println!(
+                        "\n┌─ Step 2.5 of 7 ───────────────────────────────┐"
+                    );
+                    println!(
+                        "│ Creating Base Asset & Yield Asset Tokens      │"
+                    );
+                    println!("└───────────────────────────────────────────────┘");
 
-            println!("  ⏳ Loading contract...");
-            match Contract::load_contract_from_file(step.contract_name.clone()) {
-                Ok(mut contract) => {
-                    println!("  ⏳ Deploying contract...");
-                    match contract.deploy_contract().await {
-                        Ok(contract_id) => {
-                            let contract_id_str = contract_id.to_string();
-                            println!("  ✓ Deployment successful!");
-                            println!("  📋 Contract ID: {}", contract_id_str);
-                            deployed_ids.insert(step.env_var.clone(), contract_id_str);
-
-                            // Now create tokens immediately after Asset Factory
-                            println!(
-                                "\n┌─ Step 2.5 of 7 ───────────────────────────────┐"
-                            );
-                            println!(
-                                "│ Creating Base Asset & Yield Asset Tokens      │"
-                            );
-                            println!("└───────────────────────────────────────────────┘");
-
-                            match create_tokens(&deployed_ids).await {
-                                Ok((base_id, yield_id)) => {
-                                    // Store token IDs - we'll use transaction IDs
-                                    deployed_ids.insert("BASE_ASSET".to_string(), base_id);
-                                    deployed_ids.insert("YIELD_ASSET".to_string(), yield_id);
+                    loop {
+                        match create_tokens(&mut deployed_ids).await {
+                            Ok((base_id, yield_id)) => {
+                                // Store token IDs
+                                unsafe {
+                                    env::set_var("BASE_ASSET", base_id.clone());
+                                    env::set_var("YIELD_ASSET", yield_id.clone());
                                 }
-                                Err(e) => {
-                                    println!("  ✗ Token creation failed: {}", e);
-                                    if Confirm::new()
-                                        .with_prompt("Retry token creation?")
-                                        .interact()?
-                                    {
-                                        match create_tokens(&deployed_ids).await {
-                                            Ok((base_id, yield_id)) => {
-                                                println!("  ✓ Tokens created on retry!");
-                                                deployed_ids.insert("BASE_ASSET".to_string(), base_id);
-                                                deployed_ids.insert("YIELD_ASSET".to_string(), yield_id);
-                                            }
-                                            Err(retry_err) => {
-                                                println!("  ✗ Retry failed: {}", retry_err);
-                                                println!("  Continuing without tokens...");
-                                            }
-                                        }
-                                    }
+                                deployed_ids.insert("BASE_ASSET".to_string(), base_id.clone());
+                                deployed_ids.insert("YIELD_ASSET".to_string(), yield_id.clone());
+                                let reserve_id = ContractId::from_solidity_address(base_id.as_str())?.to_string();
+                                unsafe {
+                                    env::set_var("RESERVE_ASSET_ID", reserve_id.clone());
                                 }
+                                deployed_ids.insert("RESERVE_ASSET_ID".to_string(), reserve_id);
+
+                                update_token_status(&mut state, "BASE_ASSET", DeploymentStatus::Completed, Some(base_id.clone()));
+                                update_token_status(&mut state, "YIELD_ASSET", DeploymentStatus::Completed, Some(yield_id.clone()));
+                                if let Some(reserve_id_val) = deployed_ids.get("RESERVE_ASSET_ID") {
+                                    update_token_status(&mut state, "RESERVE_ASSET_ID", DeploymentStatus::Completed, Some(reserve_id_val.clone()));
+                                }
+                                save_state(&state)?;
+                                break;
                             }
-                        }
-                        Err(e) => {
-                            println!("  ✗ Deployment failed: {}", e);
-                            if Confirm::new()
-                                .with_prompt("Retry deployment?")
-                                .interact()?
-                            {
-                                match Contract::load_contract_from_file(step.contract_name.clone())
+                            Err(e) => {
+                                println!("  ✗ Token creation failed: {}", e);
+                                if !Confirm::new()
+                                    .with_prompt("Retry token creation?")
+                                    .interact()?
                                 {
-                                    Ok(mut retry_contract) => {
-                                        match retry_contract.deploy_contract().await {
-                                            Ok(contract_id) => {
-                                                let contract_id_str = contract_id.to_string();
-                                                println!("  ✓ Deployment successful on retry!");
-                                                println!("  📋 Contract ID: {}", contract_id_str);
-                                                deployed_ids.insert(
-                                                    step.env_var.clone(),
-                                                    contract_id_str,
-                                                );
-                                            }
-                                            Err(retry_err) => {
-                                                println!("  ✗ Retry failed: {}", retry_err);
-                                                println!("  Continuing to next step...");
-                                            }
-                                        }
-                                    }
-                                    Err(load_err) => {
-                                        println!("  ✗ Failed to load contract: {}", load_err);
-                                        println!("  Continuing to next step...");
-                                    }
+                                    println!("  Skipping token creation...");
+                                    break;
                                 }
                             }
                         }
                     }
                 }
-                Err(e) => {
-                    println!("  ✗ Failed to load contract: {}", e);
-                    println!("  Continuing to next step...");
-                }
             }
         } else {
-            // Standard deployment for other steps
+            // Standard deployment for other steps with unlimited retries
             println!(
                 "\n┌─ Step {} of 7 ─────────────────────────────────┐",
                 step.order
@@ -219,140 +336,62 @@ async fn main() -> Result<()> {
             println!("│ Deploying: {:<35} │", step.name);
             println!("└───────────────────────────────────────────────┘");
 
-            // Get user confirmation
-            if !Confirm::new()
-                .with_prompt(format!(
-                    "Deploy {} ({})?",
-                    step.name, step.contract_name
-                ))
-                .interact()?
-            {
-                println!("  ⊘ Skipped {}", step.name);
-                continue;
-            }
-
-            // Load and deploy contract
-            println!("  ⏳ Loading contract...");
-            match Contract::load_contract_from_file(step.contract_name.clone()) {
-                Ok(mut contract) => {
-                    println!("  ⏳ Deploying contract...");
-                    match contract.deploy_contract().await {
-                        Ok(contract_id) => {
-                            let contract_id_str = contract_id.to_string();
-                            println!("  ✓ Deployment successful!");
-                            println!("  📋 Contract ID: {}", contract_id_str);
-                            deployed_ids.insert(step.env_var.clone(), contract_id_str);
-                        }
-                        Err(e) => {
-                            println!("  ✗ Deployment failed: {}", e);
-                            if Confirm::new()
-                                .with_prompt("Retry deployment?")
-                                .interact()?
-                            {
-                                // Retry this step
-                                match Contract::load_contract_from_file(step.contract_name.clone())
-                                {
-                                    Ok(mut retry_contract) => {
-                                        match retry_contract.deploy_contract().await {
-                                            Ok(contract_id) => {
-                                                let contract_id_str = contract_id.to_string();
-                                                println!("  ✓ Deployment successful on retry!");
-                                                println!("  📋 Contract ID: {}", contract_id_str);
-                                                deployed_ids.insert(
-                                                    step.env_var.clone(),
-                                                    contract_id_str,
-                                                );
-                                            }
-                                            Err(retry_err) => {
-                                                println!("  ✗ Retry failed: {}", retry_err);
-                                                println!("  Continuing to next step...");
-                                            }
-                                        }
-                                    }
-                                    Err(load_err) => {
-                                        println!("  ✗ Failed to load contract: {}", load_err);
-                                        println!("  Continuing to next step...");
-                                    }
-                                }
-                            } else {
-                                println!("  Continuing to next step...");
-                            }
-                        }
-                    }
-                }
-                Err(e) => {
-                    println!("  ✗ Failed to load contract: {}", e);
-                    println!("  Continuing to next step...");
-                }
-            }
+            let _ = deploy_contract_with_unlimited_retries(step, &mut deployed_ids, &mut state).await;
         }
     }
+    }
 
+    // For TokensOnly or Full mode with tokens, create tokens if Asset Factory was deployed or already exists
+    if matches!(deployment_mode, DeploymentMode::Full | DeploymentMode::TokensOnly) {
+        if deployed_ids.contains_key("ASSET_FACTORY") || env::var("ASSET_FACTORY").is_ok() {
+            println!(
+                "\n┌─ Token Creation ───────────────────────────────┐"
+            );
+            println!(
+                "│ Creating Base Asset & Yield Asset Tokens      │"
+            );
+            println!("└───────────────────────────────────────────────┘");
 
-    // Deploy Lending Pool Factory (Step 7)
-    println!(
-        "\n┌─ Step 7 of 7 ─────────────────────────────────┐"
-    );
-    println!(
-        "│ Deploying: Lending Pool Factory              │"
-    );
-    println!("└───────────────────────────────────────────────┘");
+            loop {
+                match create_tokens(&mut deployed_ids).await {
+                    Ok((base_id, yield_id)) => {
+                        // Store token IDs
+                        unsafe {
+                            env::set_var("BASE_ASSET", base_id.clone());
+                            env::set_var("YIELD_ASSET", yield_id.clone());
+                        }
+                        deployed_ids.insert("BASE_ASSET".to_string(), base_id.clone());
+                        deployed_ids.insert("YIELD_ASSET".to_string(), yield_id.clone());
+                        let reserve_id = ContractId::from_solidity_address(base_id.as_str())?.to_string();
+                        unsafe {
+                            env::set_var("RESERVE_ASSET_ID", reserve_id.clone());
+                        }
+                        deployed_ids.insert("RESERVE_ASSET_ID".to_string(), reserve_id);
 
-    if !Confirm::new()
-        .with_prompt("Deploy Lending Pool Factory?")
-        .interact()?
-    {
-        println!("  ⊘ Skipped Lending Pool Factory");
-    } else {
-        println!("  ⏳ Loading contract...");
-        match Contract::load_contract_from_file("LendingPoolFactory".to_string()) {
-            Ok(mut contract) => {
-                println!("  ⏳ Deploying contract...");
-                match contract.deploy_contract().await {
-                    Ok(contract_id) => {
-                        let contract_id_str = contract_id.to_string();
-                        println!("  ✓ Deployment successful!");
-                        println!("  📋 Contract ID: {}", contract_id_str);
-                        deployed_ids.insert(
-                            "ASSET_LENDING_POOL_FACTORY".to_string(),
-                            contract_id_str,
-                        );
+                        update_token_status(&mut state, "BASE_ASSET", DeploymentStatus::Completed, Some(base_id.clone()));
+                        update_token_status(&mut state, "YIELD_ASSET", DeploymentStatus::Completed, Some(yield_id.clone()));
+                        if let Some(reserve_id_val) = deployed_ids.get("RESERVE_ASSET_ID") {
+                            update_token_status(&mut state, "RESERVE_ASSET_ID", DeploymentStatus::Completed, Some(reserve_id_val.clone()));
+                        }
+                        save_state(&state)?;
+                        break;
                     }
                     Err(e) => {
-                        println!("  ✗ Deployment failed: {}", e);
-                        if Confirm::new()
-                            .with_prompt("Retry deployment?")
+                        println!("  ✗ Token creation failed: {}", e);
+                        if !Confirm::new()
+                            .with_prompt("Retry token creation?")
                             .interact()?
                         {
-                            match Contract::load_contract_from_file("LendingPoolFactory".to_string())
-                            {
-                                Ok(mut retry_contract) => {
-                                    match retry_contract.deploy_contract().await {
-                                        Ok(contract_id) => {
-                                            let contract_id_str = contract_id.to_string();
-                                            println!("  ✓ Deployment successful on retry!");
-                                            println!("  📋 Contract ID: {}", contract_id_str);
-                                            deployed_ids.insert(
-                                                "ASSET_LENDING_POOL_FACTORY".to_string(),
-                                                contract_id_str,
-                                            );
-                                        }
-                                        Err(retry_err) => {
-                                            println!("  ✗ Retry failed: {}", retry_err);
-                                        }
-                                    }
-                                }
-                                Err(load_err) => {
-                                    println!("  ✗ Failed to load contract: {}", load_err);
-                                }
-                            }
+                            println!("  Skipping token creation...");
+                            break;
                         }
                     }
                 }
             }
-            Err(e) => {
-                println!("  ✗ Failed to load contract: {}", e);
-            }
+        } else if matches!(deployment_mode, DeploymentMode::TokensOnly) {
+            println!("\n✗ Asset Factory contract not found!");
+            println!("  Deploy contracts first or ensure ASSET_FACTORY environment variable is set.");
+            return Ok(());
         }
     }
 
@@ -399,7 +438,7 @@ async fn main() -> Result<()> {
 }
 
 async fn create_tokens(
-    deployed_ids: &HashMap<String, String>,
+    deployed_ids: &mut HashMap<String, String>,
 ) -> Result<(String, String)> {
     let mut wallet = ActionWallet::from_env();
 
@@ -442,7 +481,18 @@ async fn create_tokens(
     {
         println!("  ✓ Base Asset created!");
         println!("  📋 Transaction ID: {}", output.transaction_id);
+
+        let asset_manager_address = output.output.as_ref().unwrap().asset_manager.clone();
+        println!("  🛠️  Asset Manager Address: {}", asset_manager_address);
+
+        unsafe {
+            env::set_var("BASE_ASSET_MANAGER", asset_manager_address.clone());
+            deployed_ids.insert("BASE_ASSET_MANAGER".to_string(), asset_manager_address);
+        }
+
         output.output.unwrap().token
+
+
     } else {
         anyhow::bail!("Unexpected response from Asset Factory")
     };
@@ -476,10 +526,26 @@ async fn create_tokens(
     {
         println!("  ✓ Yield Asset created!");
         println!("  📋 Transaction ID: {}", output.transaction_id);
+
+        let asset_manager_address = output.output.as_ref().unwrap().asset_manager.clone();
+        println!("  🛠️  Asset Manager Address: {}", asset_manager_address);
+
+        unsafe {
+            env::set_var("YIELD_ASSET_MANAGER", asset_manager_address.clone());
+            deployed_ids.insert("YIELD_ASSET_MANAGER".to_string(), asset_manager_address);
+        }
+
         output.output.unwrap().token
     } else {
         anyhow::bail!("Unexpected response from Asset Factory")
     };
+
+    let reserve_asset_id = ContractId::from_solidity_address(base_asset_address.as_str())?.to_string();
+    unsafe  {
+        env::set_var("RESERVE_ASSET_ID", reserve_asset_id.clone());
+        println!("Reserve asset id set to {}", env::var("RESERVE_ASSET_ID")?);
+    }
+    deployed_ids.insert("RESERVE_ASSET_ID".to_string(), reserve_asset_id);
 
     println!("└────────────────────────────────────────────┘\n");
 
@@ -540,4 +606,243 @@ fn update_env_file(deployed_ids: &HashMap<String, String>) -> Result<()> {
     // Write updated content
     fs::write(env_path, content)?;
     Ok(())
+}
+
+fn get_state_file_path() -> PathBuf {
+    PathBuf::from("./deployer/deployment_state.json")
+}
+
+fn ensure_deployer_dir() -> Result<()> {
+    let deployer_dir = Path::new("./deployer");
+    if !deployer_dir.exists() {
+        fs::create_dir_all(deployer_dir)?;
+    }
+    Ok(())
+}
+
+fn create_initial_state() -> DeploymentState {
+    let now = Utc::now().to_rfc3339();
+    DeploymentState {
+        started_at: now.clone(),
+        last_updated: now,
+        deployments: vec![
+            ContractDeploymentState {
+                order: 1,
+                name: "Access Controller".to_string(),
+                contract_name: "AccessController".to_string(),
+                env_var: "ACCESS_CONTROLLER_CONTRACT_ID".to_string(),
+                status: DeploymentStatus::Pending,
+                contract_id: None,
+            },
+            ContractDeploymentState {
+                order: 2,
+                name: "Asset Factory".to_string(),
+                contract_name: "AssetFactory".to_string(),
+                env_var: "ASSET_FACTORY".to_string(),
+                status: DeploymentStatus::Pending,
+                contract_id: None,
+            },
+            ContractDeploymentState {
+                order: 3,
+                name: "Cradle Account Factory".to_string(),
+                contract_name: "CradleAccountFactory".to_string(),
+                env_var: "CRADLE_ACCOUNT_FACTORY_CONTRACT_ID".to_string(),
+                status: DeploymentStatus::Pending,
+                contract_id: None,
+            },
+            ContractDeploymentState {
+                order: 4,
+                name: "Bridged Asset Issuer".to_string(),
+                contract_name: "BridgedAssetIssuer".to_string(),
+                env_var: "BRIDGED_ASSET_ISSUER_CONTRACT_ID".to_string(),
+                status: DeploymentStatus::Pending,
+                contract_id: None,
+            },
+            ContractDeploymentState {
+                order: 5,
+                name: "Native Asset Issuer".to_string(),
+                contract_name: "NativeAssetIssuer".to_string(),
+                env_var: "NATIVE_ASSET_ISSUER_CONTRACT_ID".to_string(),
+                status: DeploymentStatus::Pending,
+                contract_id: None,
+            },
+            ContractDeploymentState {
+                order: 6,
+                name: "Cradle Order Book Settler".to_string(),
+                contract_name: "CradleOrderBookSettler".to_string(),
+                env_var: "CRADLE_ORDER_BOOK_SETTLER_CONTRACT_ID".to_string(),
+                status: DeploymentStatus::Pending,
+                contract_id: None,
+            },
+            ContractDeploymentState {
+                order: 7,
+                name: "Lending Pool Factory".to_string(),
+                contract_name: "LendingPoolFactory".to_string(),
+                env_var: "ASSET_LENDING_POOL_FACTORY".to_string(),
+                status: DeploymentStatus::Pending,
+                contract_id: None,
+            },
+        ],
+        tokens: vec![
+            TokenState {
+                name: "BASE_ASSET".to_string(),
+                status: DeploymentStatus::Pending,
+                id: None,
+            },
+            TokenState {
+                name: "YIELD_ASSET".to_string(),
+                status: DeploymentStatus::Pending,
+                id: None,
+            },
+            TokenState {
+                name: "RESERVE_ASSET_ID".to_string(),
+                status: DeploymentStatus::Pending,
+                id: None,
+            },
+        ],
+    }
+}
+
+fn load_or_create_state() -> Result<DeploymentState> {
+    ensure_deployer_dir()?;
+    let state_path = get_state_file_path();
+
+    if state_path.exists() {
+        let content = fs::read_to_string(&state_path)?;
+        let state = serde_json::from_str(&content)?;
+        Ok(state)
+    } else {
+        Ok(create_initial_state())
+    }
+}
+
+fn save_state(state: &DeploymentState) -> Result<()> {
+    ensure_deployer_dir()?;
+    let state_path = get_state_file_path();
+    let mut updated_state = state.clone();
+    updated_state.last_updated = Utc::now().to_rfc3339();
+    let content = serde_json::to_string_pretty(&updated_state)?;
+    fs::write(&state_path, content)?;
+    Ok(())
+}
+
+fn update_deployment_status(
+    state: &mut DeploymentState,
+    env_var: &str,
+    status: DeploymentStatus,
+    contract_id: Option<String>,
+) {
+    for deployment in &mut state.deployments {
+        if deployment.env_var == env_var {
+            deployment.status = status;
+            deployment.contract_id = contract_id;
+            break;
+        }
+    }
+}
+
+fn update_token_status(
+    state: &mut DeploymentState,
+    token_name: &str,
+    status: DeploymentStatus,
+    id: Option<String>,
+) {
+    for token in &mut state.tokens {
+        if token.name == token_name {
+            token.status = status;
+            token.id = id;
+            break;
+        }
+    }
+}
+
+fn apply_state_to_env(state: &DeploymentState) {
+    for deployment in &state.deployments {
+        if let Some(contract_id) = &deployment.contract_id {
+            unsafe {
+                env::set_var(&deployment.env_var, contract_id);
+            }
+        }
+    }
+
+    for token in &state.tokens {
+        if let Some(id) = &token.id {
+            unsafe {
+                env::set_var(&token.name, id);
+            }
+        }
+    }
+}
+
+async fn deploy_contract_with_unlimited_retries(
+    step: &DeploymentStep,
+    deployed_ids: &mut HashMap<String, String>,
+    state: &mut DeploymentState,
+) -> Result<bool> {
+    loop {
+        if !Confirm::new()
+            .with_prompt(format!(
+                "Deploy {} ({})?",
+                step.name, step.contract_name
+            ))
+            .interact()?
+        {
+            println!("  ⊘ Skipped {}", step.name);
+            update_deployment_status(state, &step.env_var, DeploymentStatus::Failed, None);
+            save_state(state)?;
+            return Ok(false);
+        }
+
+        println!("  ⏳ Loading contract...");
+        match Contract::load_contract_from_file(step.contract_name.clone()) {
+            Ok(mut contract) => {
+                println!("  ⏳ Deploying contract...");
+                match contract.deploy_contract().await {
+                    Ok(contract_id) => {
+                        let contract_id_str = contract_id.to_string();
+                        println!("  ✓ Deployment successful!");
+                        println!("  📋 Contract ID: {}", contract_id_str);
+                        unsafe {
+                            env::set_var(step.env_var.clone(), contract_id_str.clone());
+                        }
+                        deployed_ids.insert(step.env_var.clone(), contract_id_str);
+                        update_deployment_status(
+                            state,
+                            &step.env_var,
+                            DeploymentStatus::Completed,
+                            Some(contract_id.to_string()),
+                        );
+                        save_state(state)?;
+                        return Ok(true);
+                    }
+                    Err(e) => {
+                        println!("  ✗ Deployment failed: {}", e);
+                        if !Confirm::new()
+                            .with_prompt("Retry deployment?")
+                            .interact()?
+                        {
+                            println!("  Skipping to next step...");
+                            update_deployment_status(state, &step.env_var, DeploymentStatus::Failed, None);
+                            save_state(state)?;
+                            return Ok(false);
+                        }
+                        // Loop continues for retry
+                    }
+                }
+            }
+            Err(e) => {
+                println!("  ✗ Failed to load contract: {}", e);
+                if !Confirm::new()
+                    .with_prompt("Retry deployment?")
+                    .interact()?
+                {
+                    println!("  Skipping to next step...");
+                    update_deployment_status(state, &step.env_var, DeploymentStatus::Failed, None);
+                    save_state(state)?;
+                    return Ok(false);
+                }
+                // Loop continues for retry
+            }
+        }
+    }
 }

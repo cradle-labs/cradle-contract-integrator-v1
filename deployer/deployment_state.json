@@ -1,0 +1,79 @@
+{
+  "started_at": "2025-10-28T18:10:55.829953833+00:00",
+  "last_updated": "2025-10-28T18:39:46.156989918+00:00",
+  "deployments": [
+    {
+      "order": 1,
+      "name": "Access Controller",
+      "contract_name": "AccessController",
+      "env_var": "ACCESS_CONTROLLER_CONTRACT_ID",
+      "status": "completed",
+      "contract_id": "0.0.7152824"
+    },
+    {
+      "order": 2,
+      "name": "Asset Factory",
+      "contract_name": "AssetFactory",
+      "env_var": "ASSET_FACTORY",
+      "status": "completed",
+      "contract_id": "0.0.7152885"
+    },
+    {
+      "order": 3,
+      "name": "Cradle Account Factory",
+      "contract_name": "CradleAccountFactory",
+      "env_var": "CRADLE_ACCOUNT_FACTORY_CONTRACT_ID",
+      "status": "completed",
+      "contract_id": "0.0.7152899"
+    },
+    {
+      "order": 4,
+      "name": "Bridged Asset Issuer",
+      "contract_name": "BridgedAssetIssuer",
+      "env_var": "BRIDGED_ASSET_ISSUER_CONTRACT_ID",
+      "status": "completed",
+      "contract_id": "0.0.7152979"
+    },
+    {
+      "order": 5,
+      "name": "Native Asset Issuer",
+      "contract_name": "NativeAssetIssuer",
+      "env_var": "NATIVE_ASSET_ISSUER_CONTRACT_ID",
+      "status": "completed",
+      "contract_id": "0.0.7152994"
+    },
+    {
+      "order": 6,
+      "name": "Cradle Order Book Settler",
+      "contract_name": "CradleOrderBookSettler",
+      "env_var": "CRADLE_ORDER_BOOK_SETTLER_CONTRACT_ID",
+      "status": "completed",
+      "contract_id": "0.0.7152902"
+    },
+    {
+      "order": 7,
+      "name": "Lending Pool Factory",
+      "contract_name": "LendingPoolFactory",
+      "env_var": "ASSET_LENDING_POOL_FACTORY",
+      "status": "completed",
+      "contract_id": "0.0.7152923"
+    }
+  ],
+  "tokens": [
+    {
+      "name": "BASE_ASSET",
+      "status": "completed",
+      "id": "00000000000000000000000000000000006d2522"
+    },
+    {
+      "name": "YIELD_ASSET",
+      "status": "completed",
+      "id": "00000000000000000000000000000000006d2525"
+    },
+    {
+      "name": "RESERVE_ASSET_ID",
+      "status": "completed",
+      "id": "0.0.7152930"
+    }
+  ]
+}

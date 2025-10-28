@@ -110,12 +110,12 @@ impl ContractFunctionProcessor<AssetIssuerFunctionsOutput> for AssetIssuerFuncti
             AssetIssuerFunctionsInput::LockReserves(args)=>{
                 let contract_id = ContractId::from_str(args.contract_id.as_str())?;
                 transaction.contract_id(contract_id);
-                transaction.function("lockReserves");
 
                 let mut params = ContractFunctionParameters::new();
                 let amount = num_bigint::BigUint::from(args.amount);
                 params.add_address(args.user.as_str());
                 params.add_uint256(amount);
+                transaction.function_with_parameters("lockReserves", &params);
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 

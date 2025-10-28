@@ -1,4 +1,5 @@
 use hedera::{ContractCallQuery, ContractExecuteTransaction, ContractFunctionParameters};
+use hedera::HbarUnit::Hbar;
 use crate::utils::functions::access_controller::AccessControllerFunctionsInput::HasAccess;
 use crate::utils::functions::commons::ContractFunctionProcessor;
 use crate::utils::functions::FunctionCallOutput;
@@ -63,6 +64,7 @@ impl ContractFunctionProcessor<AccessControllerFunctionsOutput> for AccessContro
 
         let mut query_transaction = ContractCallQuery::new();
         query_transaction.contract_id(contract_ids.access_controller_contract_id);
+        query_transaction.gas(1_000_000);
 
         match &self {
             HasAccess(args)=>{
@@ -173,23 +175,23 @@ impl ContractFunctionProcessor<AccessControllerFunctionsOutput> for AccessContro
             },
             AccessControllerFunctionsInput::GetLevel(args)=>{
 
-                transaction.function("getLevel");
+                query_transaction.function("getLevel");
                 let mut params = ContractFunctionParameters::new();
                 
                 params.add_uint64(args.level);
-                
-                transaction.function_parameters(params.to_bytes(Some("getLevel")));
-                
-                let response = transaction.execute(&mut wallet.client).await?;
-                
-                let receipt = response.get_receipt(&mut wallet.client).await?;
 
-                let output = FunctionCallOutput {
-                    transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
-                };
-
-                Ok(AccessControllerFunctionsOutput::GetLevel( output))
+                query_transaction.function_parameters(params.to_bytes(Some("getLevel")));
+                
+                let response = query_transaction.execute(&mut wallet.client).await?;
+                
+                // let receipt = response.get;
+                todo!("Seems address array is not supported yet in hedera sdk");
+                // let output = FunctionCallOutput {
+                //     transaction_id: receipt.transaction_id.unwrap().to_string(),
+                //     output: None
+                // };
+                //
+                // Ok(AccessControllerFunctionsOutput::GetLevel( output))
             },
             AccessControllerFunctionsInput::RotateAdmin(args)=>{
 

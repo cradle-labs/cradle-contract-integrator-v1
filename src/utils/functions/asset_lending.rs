@@ -395,11 +395,11 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
             },
             AssetLendingPoolFunctionsInput::GetAssetMultiplier(args)=>{
 
-                query_transaction.function("getMultiplier");
 
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.asset.as_str());
+                query_transaction.function_with_parameters("getMultiplier", &params);
 
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
@@ -417,11 +417,11 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
             },
             AssetLendingPoolFunctionsInput::GetUserDepositPosition(args)=>{
 
-                query_transaction.function("getUserDepositPosition");
 
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.user.as_str());
+                query_transaction.function_with_parameters("getUserDepositPosition", &params);
 
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
@@ -442,11 +442,11 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
             },
             AssetLendingPoolFunctionsInput::GetUserBorrowPosition(args)=>{
 
-                query_transaction.function("getUserBorrowPosition");
 
                 let mut params = ContractFunctionParameters::new();
                 params.add_address(args.user.as_str());
                 params.add_address(args.collateral_asset.as_str());
+                query_transaction.function_with_parameters("getUserBorrowPosition", &params);
 
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
                 let principal_borrowed: u64 = response.get_u256(0).unwrap().try_into()?;
@@ -470,13 +470,14 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
             },
             AssetLendingPoolFunctionsInput::GetMaxBorrowAmount(args)=>{
 
-                query_transaction.function("getMaxBorrowAmount");
 
                 let mut params = ContractFunctionParameters::new();
 
                 let collateral_amount = BigUint::from(args.collateral_amount);
                 params.add_uint256(collateral_amount);
                 params.add_address(args.collateral_asset.as_str());
+                
+                query_transaction.function_with_parameters("getMaxBorrowAmount", &params);
 
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
@@ -492,13 +493,14 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
             },
             AssetLendingPoolFunctionsInput::IsPositionLiquidatable(args)=>{
 
-                query_transaction.function("isPositionLiquidatable");
 
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.user.as_str());
                 params.add_address(args.collateral_asset.as_str());
 
+                query_transaction.function_with_parameters("isPositionLiquidatable", &params);
+                
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
                 let liquidatable: bool = response.get_bool(0).unwrap();
