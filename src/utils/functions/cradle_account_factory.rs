@@ -47,6 +47,7 @@ impl ContractFunctionProcessor<CradleAccountFactoryFunctionsOutput> for CradleAc
         transaction.gas(5_000_000);
         let mut query_transaction = ContractCallQuery::new();
         query_transaction.contract_id(contract_ids.cradle_account_factory_contract_id);
+        query_transaction.gas(1_000_000);
 
         let mut params = ContractFunctionParameters::new();
 
@@ -61,10 +62,15 @@ impl ContractFunctionProcessor<CradleAccountFactoryFunctionsOutput> for CradleAc
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
                 let receipt = response.get_receipt(&wallet.client).await?;
+                let record = response.get_record(&wallet.client).await?;
+                let result = record.contract_function_result.ok_or_else(|| anyhow::anyhow!("Failed to find contract result"))?;
+                let account_address = result.get_address(0).ok_or_else(|| anyhow::anyhow!("Failed to find account address"))?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: Some(AddressOutput {
+                        account_address
+                    })
                 };
 
                 Ok(CradleAccountFactoryFunctionsOutput::CreateAccountForUser(output))
@@ -79,9 +85,15 @@ impl ContractFunctionProcessor<CradleAccountFactoryFunctionsOutput> for CradleAc
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
                 let receipt = response.get_receipt(&wallet.client).await?;
 
+                let record = response.get_record(&wallet.client).await?;
+                let result = record.contract_function_result.ok_or_else(|| anyhow::anyhow!("Failed to find contract result"))?;
+                let account_address = result.get_address(0).ok_or_else(|| anyhow::anyhow!("Failed to find account address"))?;
+
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: Some(AddressOutput {
+                        account_address
+                    })
                 };
 
                 Ok(CradleAccountFactoryFunctionsOutput::CreateAccount(output))

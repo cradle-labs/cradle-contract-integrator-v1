@@ -2,10 +2,7 @@ use std::env;
 use anyhow::Result;
 use dialoguer::{Input, Select};
 use hedera::ContractId;
-use contract_integrator::utils::functions::asset_manager::{
-    AssetManagerFunctionInput, AssetManagerFunctionOutput, MintArgs, BurnArgs, WipeArgs,
-    AirdropArgs,
-};
+use contract_integrator::utils::functions::asset_manager::{AssetManagerFunctionInput, AssetManagerFunctionOutput, MintArgs, BurnArgs, WipeArgs, AirdropArgs, TransferArgs};
 use contract_integrator::utils::functions::{ContractCallInput, ContractCallOutput};
 use contract_integrator::wallet::wallet::ActionWallet;
 
@@ -17,7 +14,7 @@ pub async fn main() -> Result<()> {
     // Select which function to call
     let function_selection = Select::new()
         .with_prompt("Select Asset Manager Function")
-        .items(&["Mint", "Burn", "Wipe", "Airdrop", "Self Associate"])
+        .items(&["Mint", "Burn", "Wipe", "Airdrop", "Self Associate", "TransferTokens", "Token Associate", "Grant KYC"])
         .interact()?;
 
     let input = match function_selection {
@@ -31,7 +28,7 @@ pub async fn main() -> Result<()> {
                 .interact()?;
 
             ContractCallInput::AssetManager(AssetManagerFunctionInput::Mint(MintArgs {
-                asset_contract: asset_contract.to_solidity_address()?,
+                asset_contract: asset_contract.to_string(),
                 amount,
             }))
         }
@@ -79,6 +76,8 @@ pub async fn main() -> Result<()> {
                 .with_prompt("Amount to Airdrop")
                 .interact()?;
 
+            println!("Amount {}", amount);
+
             ContractCallInput::AssetManager(AssetManagerFunctionInput::Airdrop(AirdropArgs {
                 asset_contract,
                 target,
@@ -88,6 +87,43 @@ pub async fn main() -> Result<()> {
         4 => {
             // Self Associate
             ContractCallInput::AssetManager(AssetManagerFunctionInput::SelfAssociate)
+        }
+        5 => {
+            // Transfer Tokens
+            let asset_contract: String = Input::new()
+                .with_prompt("Asset Contract ID")
+                .interact()?;
+            let target: String = Input::new()
+                .with_prompt("Target Address for Transfer")
+                .interact()?;
+            let amount: u64 = Input::new()
+                .with_prompt("Amount to Transfer")
+                .interact()?;
+
+            ContractCallInput::AssetManager(AssetManagerFunctionInput::Transfer(TransferArgs {
+                asset_contract,
+                target,
+                amount,
+            }))
+        }
+        6 => {
+            // Token Associate
+            let token_contract: String = Input::new()
+                .with_prompt("Token Contract ID")
+                .interact()?;
+
+            ContractCallInput::AssetManager(AssetManagerFunctionInput::TokenAssociate(token_contract))
+        }
+        7 => {
+            // Grant KYC
+            let token_contract: String = Input::new()
+                .with_prompt("Token Contract ID")
+                .interact()?;
+            let account: String = Input::new()
+                .with_prompt("Account Address to Grant KYC")
+                .interact()?;
+
+            ContractCallInput::AssetManager(AssetManagerFunctionInput::GrantKYC(token_contract, account))
         }
         _ => panic!("Invalid selection"),
     };
@@ -119,8 +155,17 @@ pub async fn main() -> Result<()> {
                     println!("✓ Self Associated");
                     println!("Transaction ID: {}", result.transaction_id);
                 }
-                _=>{
-                    unimplemented!()
+                AssetManagerFunctionOutput::Transfer(result) => {
+                    println!("✓ Tokens Transferred");
+                    println!("Transaction ID: {}", result.transaction_id);
+                }
+                AssetManagerFunctionOutput::TokenAssociate(result)=> {
+                    println!("✓ Token Associated");
+                    println!("Transaction ID: {}", result.transaction_id);
+                },
+                AssetManagerFunctionOutput::GrantKYC(result) => {
+                    println!("✓ KYC Granted");
+                    println!("Transaction ID: {}", result.transaction_id);
                 }
             }
         }

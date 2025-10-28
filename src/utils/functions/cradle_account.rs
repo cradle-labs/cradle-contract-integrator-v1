@@ -152,9 +152,9 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
             CradleAccountFunctionInput::AssociateToken(args)=>{
                 let contract_id = ContractId::from_str(args.account_contract_id.as_str())?;
                 transaction.contract_id(contract_id);
-                transaction.function("associateToken");
-
                 params.add_address(args.token.as_str());
+                transaction.function_with_parameters("associateToken", &params);
+
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
@@ -173,13 +173,14 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
             CradleAccountFunctionInput::Withdraw(args)=>{
                 let contract_id = ContractId::from_str(args.account_contract_id.as_str())?;
                 transaction.contract_id(contract_id);
-                transaction.function("withdraw");
 
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.asset.as_str());
                 params.add_uint64(args.amount);
                 params.add_address(args.to.as_str());
+
+                transaction.function_with_parameters("withdraw", &params);
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
@@ -196,11 +197,13 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
             CradleAccountFunctionInput::UpdateBridgingStatus(args)=>{
                 let contract_id = ContractId::from_str(args.account_contract_id.as_str())?;
                 transaction.contract_id(contract_id);
-                transaction.function("updateBridgingStatus");
 
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_bool(args.new_status);
+                transaction.function_with_parameters("updateBridgingStatus", &params);
+
+
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
                 let receipt = response.get_receipt(&wallet.client).await?;
@@ -215,13 +218,15 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
             CradleAccountFunctionInput::TransferAsset(args)=>{
                 let contract_id = ContractId::from_str(args.account_contract_id.as_str())?;
                 transaction.contract_id(contract_id);
-                transaction.function("transferAsset");
+
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.to.as_str());
                 params.add_address(args.asset.as_str());
                 let amount = BigUint::from(args.amount);
                 params.add_uint256(amount);
+                transaction.function_with_parameters("transferAsset", &params);
+
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
                 let receipt = response.get_receipt(&wallet.client).await?;
@@ -239,6 +244,8 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
                 let mut params = ContractFunctionParameters::new();
                 params.add_address(args.asset.as_str());
 
+                query_transaction.function_with_parameters("getTradableBalance", &params);
+
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
                 let tradable_balance: u64 = response.get_u256(0).unwrap().try_into()?;
@@ -255,13 +262,13 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
             CradleAccountFunctionInput::LockAsset(args)=>{
                 let contract_id = ContractId::from_str(args.account_contract_id.as_str())?;
                 transaction.contract_id(contract_id);
-                transaction.function("lockAsset");
 
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.asset.as_str());
                 let amount = BigUint::from(args.amount);
                 params.add_uint256(amount);
+                transaction.function_with_parameters("lockAsset", &params);
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
@@ -277,13 +284,13 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
             CradleAccountFunctionInput::UnLockAsset(args)=>{
                 let contract_id = ContractId::from_str(args.account_contract_id.as_str())?;
                 transaction.contract_id(contract_id);
-                transaction.function("unlockAsset");
 
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.asset.as_str());
                 let amount = BigUint::from(args.amount);
                 params.add_uint256(amount);
+                transaction.function_with_parameters("unlockAsset", &params);
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
                 let receipt = response.get_receipt(&wallet.client).await?;
@@ -298,7 +305,6 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
             CradleAccountFunctionInput::AddLoanLock(args)=>{
                 let contract_id = ContractId::from_str(args.account_contract_id.as_str())?;
                 transaction.contract_id(contract_id);
-                transaction.function("addLoanLock");
 
                 let mut params = ContractFunctionParameters::new();
 
@@ -310,6 +316,7 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
                 params.add_uint256(collateral_amount);
                 let borrow_index = BigUint::from(args.borrow_index);
                 params.add_uint256(borrow_index);
+                transaction.function_with_parameters("addLoanLock", &params);
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
@@ -325,11 +332,11 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
             CradleAccountFunctionInput::GetLoanAmount(args)=>{
                 let contract_id = ContractId::from_str(args.account_contract_id.as_str())?;
                 query_transaction.contract_id(contract_id);
-                query_transaction.function("getLoanAmount");
 
                 let mut params = ContractFunctionParameters::new();
                 params.add_address(args.lender.as_str());
                 params.add_address(args.collateral.as_str());
+                query_transaction.function_with_parameters("getLoanAmount", &params);
 
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
@@ -352,6 +359,8 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
                 params.add_address(args.lender.as_str());
                 params.add_address(args.collateral.as_str());
 
+                query_transaction.function_with_parameters("getCollateral", &params);
+
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
                 let collateral_amount: u64 = response.get_u256(0).unwrap().try_into()?;
@@ -373,6 +382,8 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
 
                 params.add_address(args.lender.as_str());
                 params.add_address(args.collateral.as_str());
+                
+                query_transaction.function_with_parameters("getLoanBlockIndex", &params);
 
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
                 let block_index: u64 = response.get_u256(0).unwrap().try_into()?;
@@ -389,7 +400,6 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
             CradleAccountFunctionInput::RemoveLoanLock(args)=>{
                 let contract_id = ContractId::from_str(args.account_contract_id.as_str())?;
                 transaction.contract_id(contract_id);
-                transaction.function("removeLoanLock");
 
                 let mut params = ContractFunctionParameters::new();
 
@@ -403,6 +413,7 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
                 params.add_uint256(loan_amount);
                 params.add_uint256(collateral_amount);
                 params.add_uint256(borrow_index);
+                transaction.function_with_parameters("removeLoanLock", &params);
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 

@@ -150,7 +150,7 @@ impl Contract {
                 let args = AssetIssuerConstructor::try_parse()?;
                 params.add_address(&args.acl_contract);
                 params.add_uint64(args.allow_list);
-                params.add_address(&args.reserve_asset_id.to_solidity_address()?);
+                params.add_address(&args.base_asset);
 
                 params
             },
@@ -158,7 +158,7 @@ impl Contract {
                 let args = AssetIssuerConstructor::try_parse()?;
                 params.add_address(&args.acl_contract);
                 params.add_uint64(args.allow_list);
-                params.add_address(&args.reserve_asset_id.to_solidity_address()?);
+                params.add_address(&args.base_asset);
 
                 params
             },
@@ -225,7 +225,7 @@ impl Contract {
                 .contents(contents_full.to_vec())
                 .max_transaction_fee(Hbar::new(2))
                 .expiration_time(expire_in_an_hour.clone())
-                .execute_with_timeout(&client, TokioDuration::from_secs(180))
+                .execute_with_timeout(&client, TokioDuration::from_secs(600))
                 .await?;
 
             println!("transaction submitted...");
@@ -249,8 +249,9 @@ impl Contract {
                         let append_tx = FileAppendTransaction::new()
                             .file_id(fid)
                             .contents(chunk.to_vec())
+
                             .max_transaction_fee(Hbar::new(2))
-                            .execute_with_timeout(&client, TokioDuration::from_secs(180))
+                            .execute_with_timeout(&client, TokioDuration::from_secs(600))
                             .await?;
 
                         let receipt = append_tx.get_receipt(&client).await?;
@@ -296,7 +297,7 @@ impl Contract {
 
         let constructor_parameters = self.get_constructor_parameters()?;
 
-
+        sleep(TokioDuration::from_secs(30)).await;
 
         let contract_id = ContractCreateTransaction::new()
             .admin_key(args.operator_key.public_key())

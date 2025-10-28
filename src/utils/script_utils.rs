@@ -28,7 +28,7 @@ pub struct AssetIssuerConstructor {
     #[clap(long,env)]
     pub allow_list: u64,
     #[clap(long,env)]
-    pub reserve_asset_id: ContractId
+    pub base_asset: String
 }
 
 #[derive(Parser, Debug)]
