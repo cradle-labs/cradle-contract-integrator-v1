@@ -1,3 +1,3 @@
 [submodule "contracts"]
 	path = contracts
-	url = git@github.com:cradle-labs/cradle-contracts-v1.git
+	url = https://github.com/cradle-labs/cradle-contracts-v1.git
