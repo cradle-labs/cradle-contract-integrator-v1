@@ -62,7 +62,7 @@ pub async fn main() -> Result<()> {
                     symbol,
                     acl_contract: acl_contract.to_solidity_address()?,
                     allow_list,
-                    contract_id: issuer_contract_id.to_solidity_address()?,
+                    contract_id: issuer_contract_id.to_string(),
                 }),
             )
         }
