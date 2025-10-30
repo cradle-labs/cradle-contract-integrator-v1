@@ -64,7 +64,7 @@ impl ContractFunctionProcessor<AssetManagerFunctionOutput> for AssetManagerFunct
     async fn process(&self, wallet: &mut ActionWallet) -> anyhow::Result<AssetManagerFunctionOutput> {
         let mut transaction = ContractExecuteTransaction::new();
         let mut params = ContractFunctionParameters::new();
-        transaction.gas(5_000_000);
+        transaction.gas(10_000_000);
         match self {
             AssetManagerFunctionInput::Mint(args) => {
                 transaction.contract_id(args.asset_contract.parse::<ContractId>()?);

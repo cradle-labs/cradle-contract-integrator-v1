@@ -144,7 +144,7 @@ impl ContractFunctionProcessor<CradleAccountFunctionOutput> for CradleAccountFun
     async fn process(&self, wallet: &mut ActionWallet) -> Result<CradleAccountFunctionOutput> {
 
         let mut transaction = ContractExecuteTransaction::new();
-        transaction.gas(5_000_000);
+        transaction.gas(10_000_000);
         let mut query_transaction = ContractCallQuery::new();
         let mut params = ContractFunctionParameters::new();
 

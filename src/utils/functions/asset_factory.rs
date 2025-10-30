@@ -30,7 +30,7 @@ impl ContractFunctionProcessor<AssetFactoryFunctionOutput> for AssetFactoryFunct
     async fn process(&self, wallet: &mut ActionWallet) -> anyhow::Result<AssetFactoryFunctionOutput> {
 
         let mut transaction= ContractExecuteTransaction::new();
-        transaction.gas(5_000_000);
+        transaction.gas(10_000_000);
         let mut params = ContractFunctionParameters::new();
 
         match self {
