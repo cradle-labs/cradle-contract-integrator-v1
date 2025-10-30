@@ -19,18 +19,53 @@ pub async fn get_contract_id_from_evm_address(evm_address: &str) -> Result<Contr
         evm_address
     );
 
-    let response = client.get(&url).send().await?;
-    let body = response.json::<serde_json::Value>().await?;
+    const MAX_RETRIES: u32 = 10;
+    let mut attempt = 0;
 
-    println!("Body {:?}", body.clone());
+    loop {
+        attempt += 1;
 
-    if let Some(contract_id_str) = body.get("contract_id").and_then(|v| v.as_str()) {
-        let contract_id = ContractId::from_str(contract_id_str)?;
-        Ok(contract_id)
-    } else {
-        anyhow::bail!(
-            "Failed to find contract_id in Mirror Node response for EVM address: {}",
-            evm_address
-        )
+        match client.get(&url).send().await {
+            Ok(response) => {
+                match response.json::<serde_json::Value>().await {
+                    Ok(body) => {
+                        println!("Body {:?}", body.clone());
+
+                        if let Some(contract_id_str) = body.get("contract_id").and_then(|v| v.as_str()) {
+                            let contract_id = ContractId::from_str(contract_id_str)?;
+                            return Ok(contract_id);
+                        } else {
+                            // Response was valid but missing contract_id - don't retry
+                            anyhow::bail!(
+                                "Failed to find contract_id in Mirror Node response for EVM address: {}",
+                                evm_address
+                            )
+                        }
+                    }
+                    Err(e) if attempt < MAX_RETRIES => {
+                        // Failed to parse JSON - retry with exponential backoff
+                        let backoff_secs = 2u64.pow(attempt - 1);
+                        println!("Attempt {} failed to parse response: {}. Retrying in {} seconds...", attempt, e, backoff_secs);
+                        sleep(Duration::from_secs(backoff_secs)).await;
+                        continue;
+                    }
+                    Err(e) => {
+                        // Max retries exceeded
+                        anyhow::bail!("Failed to get contract_id after {} attempts: {}", MAX_RETRIES, e)
+                    }
+                }
+            }
+            Err(e) if attempt < MAX_RETRIES => {
+                // Request failed - retry with exponential backoff
+                let backoff_secs = 2u64.pow(attempt - 1);
+                println!("Attempt {} failed to fetch: {}. Retrying in {} seconds...", attempt, e, backoff_secs);
+                sleep(Duration::from_secs(backoff_secs)).await;
+                continue;
+            }
+            Err(e) => {
+                // Max retries exceeded
+                anyhow::bail!("Failed to fetch contract after {} attempts: {}", MAX_RETRIES, e)
+            }
+        }
     }
 }
