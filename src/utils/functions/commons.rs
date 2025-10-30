@@ -3,6 +3,7 @@ use anyhow::Result;
 use hedera::{ContractId, ContractInfoQuery};
 use serde_json::json;
 use std::str::FromStr;
+use tokio::time::{Duration, sleep};
 
 pub trait ContractFunctionProcessor<Output> {
     async fn process(&self, wallet: &mut ActionWallet)->Result<Output>;
@@ -10,6 +11,7 @@ pub trait ContractFunctionProcessor<Output> {
 
 
 pub async fn get_contract_id_from_evm_address(evm_address: &str) -> Result<ContractId> {
+    sleep(Duration::from_secs(10)).await;
     // TODO: update to support mainnet and localhost
     let client = reqwest::Client::new();
     let url = format!(
