@@ -60,7 +60,7 @@ impl ContractFunctionProcessor<AccessControllerFunctionsOutput> for AccessContro
         let contract_ids = wallet.get_contract_ids()?;
         let mut transaction = ContractExecuteTransaction::new();
         transaction.contract_id(contract_ids.access_controller_contract_id);
-        transaction.gas(1_000_000);
+        transaction.gas(10_000_000);
 
         let mut query_transaction = ContractCallQuery::new();
         query_transaction.contract_id(contract_ids.access_controller_contract_id);

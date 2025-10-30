@@ -44,10 +44,10 @@ impl ContractFunctionProcessor<CradleAccountFactoryFunctionsOutput> for CradleAc
 
         let mut transaction = ContractExecuteTransaction::new();
         transaction.contract_id(contract_ids.cradle_account_factory_contract_id);
-        transaction.gas(5_000_000);
+        transaction.gas(10_000_000);
         let mut query_transaction = ContractCallQuery::new();
         query_transaction.contract_id(contract_ids.cradle_account_factory_contract_id);
-        query_transaction.gas(1_000_000);
+        query_transaction.gas(5_000_000);
 
         let mut params = ContractFunctionParameters::new();
 
