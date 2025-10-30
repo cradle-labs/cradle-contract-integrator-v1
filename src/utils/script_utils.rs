@@ -24,6 +24,8 @@ pub struct CradleAccountFactoryConstructor {
 #[derive(Parser, Debug)]
 pub struct AssetIssuerConstructor {
     #[clap(long,env)]
+    pub treasury_address: String,
+    #[clap(long,env)]
     pub acl_contract: String,
     #[clap(long,env)]
     pub allow_list: u64,

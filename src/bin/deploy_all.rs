@@ -794,6 +794,19 @@ async fn deploy_contract_with_unlimited_retries(
         }
 
         println!("  ⏳ Loading contract...");
+        match step.contract_name.as_str() {
+            "BridgedAssetIssuer" | "NativeAssetIssuer"=>{
+                let treasury_address: String = Input::new()
+                    .with_prompt("TREASURY_ADDRESS").interact()?;
+                
+                unsafe  {
+                    env::set_var("TREASURY_ADDRESS", treasury_address);
+                }
+            },
+            _=>{
+                // do nothing
+            }
+        }
         match Contract::load_contract_from_file(step.contract_name.clone()) {
             Ok(mut contract) => {
                 println!("  ⏳ Deploying contract...");

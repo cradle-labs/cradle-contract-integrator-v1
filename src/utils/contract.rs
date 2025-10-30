@@ -148,6 +148,7 @@ impl Contract {
             }
             "BridgedAssetIssuer"=>{
                 let args = AssetIssuerConstructor::try_parse()?;
+                params.add_address(&args.treasury_address);
                 params.add_address(&args.acl_contract);
                 params.add_uint64(args.allow_list);
                 params.add_address(&args.base_asset);
@@ -156,6 +157,7 @@ impl Contract {
             },
             "NativeAssetIssuer"=>{
                 let args = AssetIssuerConstructor::try_parse()?;
+                params.add_address(&args.treasury_address);
                 params.add_address(&args.acl_contract);
                 params.add_uint64(args.allow_list);
                 params.add_address(&args.base_asset);
