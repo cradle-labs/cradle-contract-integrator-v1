@@ -1,7 +1,8 @@
 use anyhow::anyhow;
 use hedera::{ContractCallQuery, ContractExecuteTransaction, ContractFunctionParameters};
+use serde::{Deserialize, Serialize};
 use crate::wallet::wallet::ActionWallet;
-use crate::utils::functions::commons::ContractFunctionProcessor;
+use crate::utils::functions::commons::{get_contract_id_from_evm_address, ContractFunctionProcessor};
 use crate::utils::functions::FunctionCallOutput;
 use tokio::time::Duration;
 
@@ -33,8 +34,15 @@ pub struct GetPoolResult {
     pub address: String
 }
 
+
+#[derive(Deserialize,Serialize, Clone)]
+pub struct CreatePoolResults {
+    pub address: String,
+    pub contract_id: String
+}
+
 pub enum AssetLendingPoolFactoryFunctionOutput {
-    CreatePool(FunctionCallOutput<()>),
+    CreatePool(FunctionCallOutput<CreatePoolResults>),
     GetPool(FunctionCallOutput<GetPoolResult>)
 }
 
@@ -63,11 +71,22 @@ impl ContractFunctionProcessor<AssetLendingPoolFactoryFunctionOutput> for AssetL
 
                 transaction.function_with_parameters("createPool", &params);
 
-                let transaction_id = transaction.execute_with_timeout(&wallet.client, Duration::from_secs(180)).await?.transaction_id.to_string();
+                let response = transaction.execute_with_timeout(&wallet.client, Duration::from_secs(180)).await?;
+
+                let transaction_id =response.transaction_id.to_string();
+
+                let record = response.get_record(&wallet.client).await?.contract_function_result.ok_or_else(||anyhow!("Failed to retrieve result"))?;
+
+                let pool_address = record.get_address(0).ok_or_else(||anyhow!("Pool address not found"))?;
+
+                let pool_id = get_contract_id_from_evm_address(pool_address.as_str()).await?;
 
                 let output = FunctionCallOutput {
                     transaction_id,
-                    output: None
+                    output: Some(CreatePoolResults {
+                        address: pool_address,
+                        contract_id: pool_id.to_string()
+                    })
                 };
 
                 Ok(AssetLendingPoolFactoryFunctionOutput::CreatePool(output))

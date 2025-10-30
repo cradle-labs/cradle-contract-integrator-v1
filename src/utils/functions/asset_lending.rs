@@ -7,82 +7,96 @@ use crate::wallet::wallet::ActionWallet;
 use tokio::time::Duration;
 pub struct CalculateCurrentDebtArgs {
     pub user_principal: u64,
-    pub user_borrow_index: u64
+    pub user_borrow_index: u64,
+    pub contract_id: String
 }
 
 pub struct CalculateCurrentDepositArgs {
-    pub user_shares: u64
+    pub user_shares: u64,
+    pub contract_id: String
 }
 
 pub struct CalculateHealthFactorArgs {
     pub collateral_value: u64,
-    pub borrowed_value: u64
+    pub borrowed_value: u64,
+    pub contract_id: String
 }
 
 pub struct UpdateOracleArgs {
     pub asset: String,
-    pub multiplier: u64
+    pub multiplier: u64,
+    pub contract_id: String
 }
 
 pub struct GetAssetMultiplierArgs {
-    pub asset: String
+    pub asset: String,
+    pub contract_id: String
 }
 
 pub struct GetUserDepositPositon {
-    pub user: String
+    pub user: String,
+    pub contract_id: String
 }
 
 pub struct GetUserBorrowPosition {
     pub user: String,
-    pub collateral_asset: String
+    pub collateral_asset: String,
+    pub contract_id: String
 }
 
 pub struct GetMaxBorrowAmount {
     pub collateral_amount: u64,
-    pub collateral_asset: String
+    pub collateral_asset: String,
+    pub contract_id: String
 }
 
 pub struct IsPositionLiquidatableArgs {
     pub user: String,
-    pub collateral_asset: String
+    pub collateral_asset: String,
+    pub contract_id: String
 }
 
 pub struct DepositArgs  {
     pub user: String,
-    pub amount: u64
+    pub amount: u64,
+    pub contract_id: String
 }
 
 pub struct WithdrawArgs  {
     pub user: String,
-    pub yield_token_amount: u64
+    pub yield_token_amount: u64,
+    pub contract_id: String
 }
 
 pub struct BorrowArgs {
     pub user: String,
     pub collateral_amount: u64,
-    pub collateral_asset: String
+    pub collateral_asset: String,
+    pub contract_id: String
 }
 
 pub struct RepayArgs {
     pub user: String,
     pub collateralized_asset: String,
-    pub repay_amount: u64
+    pub repay_amount: u64,
+    pub contract_id: String
 }
 
 pub struct LiquidateArgs {
     pub liquidator: String,
     pub borrower: String,
     pub dept_to_cover: u64,
-    pub collateral_asset: String
+    pub collateral_asset: String,
+    pub contract_id: String
 }
 
 pub enum AssetLendingPoolFunctionsInput {
-    GetUtilization,
-    GetBorrowRate,
-    GetSupplyRate,
-    UpdateBorrowIndex,
-    UpdateSupplyIndex,
-    UpdateIndices,
+    GetUtilization(String),
+    GetBorrowRate(String),
+    GetSupplyRate(String),
+    UpdateBorrowIndex(String),
+    UpdateSupplyIndex(String),
+    UpdateIndices(String),
     CalculateCurrentDebt(CalculateCurrentDebtArgs),
     CalculateCurrentDeposit(CalculateCurrentDepositArgs),
     CalculateHealthFactor(CalculateHealthFactorArgs),
@@ -92,14 +106,14 @@ pub enum AssetLendingPoolFunctionsInput {
     GetUserBorrowPosition(GetUserBorrowPosition),
     GetMaxBorrowAmount(GetMaxBorrowAmount),
     IsPositionLiquidatable(IsPositionLiquidatableArgs),
-    GetPoolStats,
+    GetPoolStats(String),
     Deposit(DepositArgs),
     Withdraw(WithdrawArgs),
     Borrow(BorrowArgs),
     Repay(RepayArgs),
     Liquidate(LiquidateArgs),
-    GetReserveAccount,
-    GetTreasuryAccount
+    GetReserveAccount(String),
+    GetTreasuryAccount(String)
 }
 
 pub struct GetUtilizationOutput {
@@ -199,15 +213,15 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
         let contract_ids = wallet.get_contract_ids()?;
 
         let mut transaction = ContractExecuteTransaction::new();
-        transaction.contract_id(contract_ids.asset_lending_pool_contract_id);
+
         transaction.gas(5_000_000);
         let mut query_transaction = ContractCallQuery::new();
-        query_transaction.contract_id(contract_ids.asset_lending_pool_contract_id);
+
 
 
         match self {
-            AssetLendingPoolFunctionsInput::GetUtilization=>{
-
+            AssetLendingPoolFunctionsInput::GetUtilization(contract_id)=>{
+                query_transaction.contract_id(contract_id.parse()?);
                 query_transaction.function("getUtilization");
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
@@ -222,8 +236,8 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
                 Ok(AssetLendingPoolFunctionsOutput::GetUtilization(output))
             },
-            AssetLendingPoolFunctionsInput::GetBorrowRate=>{
-
+            AssetLendingPoolFunctionsInput::GetBorrowRate(contract_id)=>{
+                query_transaction.contract_id(contract_id.parse()?);
                 query_transaction.function("getBorrowRate");
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
 
@@ -238,8 +252,8 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
                 Ok(AssetLendingPoolFunctionsOutput::GetBorrowRate(output))
             },
-            AssetLendingPoolFunctionsInput::GetSupplyRate=>{
-
+            AssetLendingPoolFunctionsInput::GetSupplyRate(contract_id)=>{
+                query_transaction.contract_id(contract_id.parse()?);
                 query_transaction.function("getSupplyRate");
 
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
@@ -255,8 +269,8 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
                 Ok(AssetLendingPoolFunctionsOutput::GetSupplyRate(output))
             },
-            AssetLendingPoolFunctionsInput::UpdateBorrowIndex=>{
-
+            AssetLendingPoolFunctionsInput::UpdateBorrowIndex(contract_id)=>{
+                query_transaction.contract_id(contract_id.parse()?);
                 transaction.function("updateBorrowIndex");
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
@@ -270,8 +284,8 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
                 Ok(AssetLendingPoolFunctionsOutput::UpdateBorrowIndex(output))
             },
-            AssetLendingPoolFunctionsInput::UpdateSupplyIndex=>{
-
+            AssetLendingPoolFunctionsInput::UpdateSupplyIndex(contract_id)=>{
+                transaction.contract_id(contract_id.parse()?);
                 transaction.function("updateSupplyIndex");
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
@@ -285,8 +299,8 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
                 Ok(AssetLendingPoolFunctionsOutput::UpdateSupplyIndex(output))
             },
-            AssetLendingPoolFunctionsInput::UpdateIndices=>{
-
+            AssetLendingPoolFunctionsInput::UpdateIndices(contract_id)=>{
+                transaction.contract_id(contract_id.parse()?);
                 transaction.function("updateIndices");
 
                 let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
@@ -300,7 +314,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 Ok(AssetLendingPoolFunctionsOutput::UpdateIndices(output))
             },
             AssetLendingPoolFunctionsInput::CalculateCurrentDebt(args)=>{
-
+                query_transaction.contract_id(args.contract_id.parse()?);
                 query_transaction.function("calculateCurrentDebt");
 
                 let mut params = ContractFunctionParameters::new();
@@ -326,7 +340,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 Ok(AssetLendingPoolFunctionsOutput::CalculateCurrentDebt(output))
             },
             AssetLendingPoolFunctionsInput::CalculateCurrentDeposit(args)=>{
-
+                query_transaction.contract_id(args.contract_id.parse()?);
                 query_transaction.function("calculateCurrentDeposit");
 
                 let mut params = ContractFunctionParameters::new();
@@ -349,7 +363,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 Ok(AssetLendingPoolFunctionsOutput::CalculateCurrentDeposit(output))
             },
             AssetLendingPoolFunctionsInput::CalculateHealthFactor(args)=>{
-
+                query_transaction.contract_id(args.contract_id.parse()?);
                 query_transaction.function("calculateHealthFactor");
 
                 let mut params = ContractFunctionParameters::new();
@@ -372,7 +386,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 Ok(AssetLendingPoolFunctionsOutput::CalculateHealthFactor(output))
             },
             AssetLendingPoolFunctionsInput::UpdateOracle(args)=>{
-
+                transaction.contract_id(args.contract_id.parse()?);
                 transaction.function("updateOracle");
 
                 let mut params = ContractFunctionParameters::new();
@@ -395,7 +409,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
             },
             AssetLendingPoolFunctionsInput::GetAssetMultiplier(args)=>{
 
-
+                query_transaction.contract_id(args.contract_id.parse()?);
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.asset.as_str());
@@ -417,7 +431,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
             },
             AssetLendingPoolFunctionsInput::GetUserDepositPosition(args)=>{
 
-
+                query_transaction.contract_id(args.contract_id.parse()?);
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.user.as_str());
@@ -442,7 +456,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
             },
             AssetLendingPoolFunctionsInput::GetUserBorrowPosition(args)=>{
 
-
+                query_transaction.contract_id(args.contract_id.parse()?);
                 let mut params = ContractFunctionParameters::new();
                 params.add_address(args.user.as_str());
                 params.add_address(args.collateral_asset.as_str());
@@ -470,7 +484,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
             },
             AssetLendingPoolFunctionsInput::GetMaxBorrowAmount(args)=>{
 
-
+                query_transaction.contract_id(args.contract_id.parse()?);
                 let mut params = ContractFunctionParameters::new();
 
                 let collateral_amount = BigUint::from(args.collateral_amount);
@@ -493,7 +507,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
             },
             AssetLendingPoolFunctionsInput::IsPositionLiquidatable(args)=>{
 
-
+                query_transaction.contract_id(args.contract_id.parse()?);
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.user.as_str());
@@ -516,7 +530,8 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
                 Ok(AssetLendingPoolFunctionsOutput::IsPositionLiquidatable(output))
             },
-            AssetLendingPoolFunctionsInput::GetPoolStats=>{
+            AssetLendingPoolFunctionsInput::GetPoolStats(contract_id)=>{
+                query_transaction.contract_id(contract_id.parse()?);
                 query_transaction.function("getPoolStats");
 
                 let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
@@ -547,6 +562,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 Ok(AssetLendingPoolFunctionsOutput::GetPoolStats(output))
             },
             AssetLendingPoolFunctionsInput::Deposit(args)=>{
+                transaction.contract_id(args.contract_id.parse( )?);
                 transaction.function("deposit");
 
                 let mut params = ContractFunctionParameters::new();
@@ -574,6 +590,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 Ok(AssetLendingPoolFunctionsOutput::Deposit(output))
             },
             AssetLendingPoolFunctionsInput::Withdraw(args)=>{
+                transaction.contract_id(args.contract_id.parse()?);
                 transaction.function("withdraw");
 
                 let mut params = ContractFunctionParameters::new();
@@ -602,7 +619,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 Ok(AssetLendingPoolFunctionsOutput::Withdraw(output))
             },
             AssetLendingPoolFunctionsInput::Borrow(args)=>{
-
+                transaction.contract_id(args.contract_id.parse()?);
                 transaction.function("borrow");
 
                 let mut params = ContractFunctionParameters::new();
@@ -630,6 +647,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 Ok(AssetLendingPoolFunctionsOutput::Borrow(output))
             },
             AssetLendingPoolFunctionsInput::Repay(args)=>{
+                transaction.contract_id(args.contract_id.parse()?);
                 transaction.function("repay");
 
                 let mut params = ContractFunctionParameters::new();
@@ -652,6 +670,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 Ok(AssetLendingPoolFunctionsOutput::Repay(output))
             },
             AssetLendingPoolFunctionsInput::Liquidate(args)=>{
+                transaction.contract_id(args.contract_id.parse()?);
                 transaction.function("liquidate");
 
                 let mut params = ContractFunctionParameters::new();
@@ -674,8 +693,9 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
                 Ok(AssetLendingPoolFunctionsOutput::Liquidate(output))
             },
-            AssetLendingPoolFunctionsInput::GetReserveAccount=> {
+            AssetLendingPoolFunctionsInput::GetReserveAccount(contract_id)=> {
                 let params = ContractFunctionParameters::new();
+                query_transaction.contract_id(contract_id.parse()?);
                 query_transaction.function_with_parameters("getReserveAccount", &params);
 
                 let response = query_transaction.execute_with_timeout(&wallet.client, Duration::from_secs(180)).await?;
@@ -691,7 +711,8 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
                 Ok(AssetLendingPoolFunctionsOutput::GetReserveAccount(output))
             },
-            AssetLendingPoolFunctionsInput::GetTreasuryAccount=> {
+            AssetLendingPoolFunctionsInput::GetTreasuryAccount(contract_id)=> {
+                query_transaction.contract_id(contract_id.parse()?);
                 let params = ContractFunctionParameters::new();
                 query_transaction.function_with_parameters("getTreasury", &params);
 
