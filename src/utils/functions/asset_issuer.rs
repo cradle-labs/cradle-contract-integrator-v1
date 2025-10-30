@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use std::time::Duration;
 use anyhow::anyhow;
-use hedera::{ContractExecuteTransaction, ContractFunctionParameters, ContractId};
+use hedera::{ContractExecuteTransaction, ContractFunctionParameters, ContractId, Hbar};
 use crate::utils::functions::commons::ContractFunctionProcessor;
 use crate::utils::functions::FunctionCallOutput;
 use crate::wallet::wallet::ActionWallet;
@@ -71,17 +71,20 @@ pub enum AssetIssuerFunctionsOutput {
 impl ContractFunctionProcessor<AssetIssuerFunctionsOutput> for AssetIssuerFunctionsInput {
     async fn process(&self, wallet: &mut ActionWallet) -> anyhow::Result<AssetIssuerFunctionsOutput> {
         let mut transaction = ContractExecuteTransaction::new();
+
         transaction.gas(5_000_000);
+
         match self {
             AssetIssuerFunctionsInput::CreateAsset(args)=>{
                 let contract_id = ContractId::from_str(args.contract_id.as_str())?;
                 transaction.contract_id(contract_id);
                 transaction.function("createAsset");
+                transaction.payable_amount(Hbar::new(20));
 
                 let mut params = ContractFunctionParameters::new();
                 params.add_string(args.name.as_str());
                 params.add_string(args.symbol.as_str());
-                params.add_string(args.acl_contract.as_str());
+                params.add_address(args.acl_contract.as_str());
                 params.add_uint64(args.allow_list);
 
                 transaction.function_parameters(params.to_bytes(Some("createAsset")));
