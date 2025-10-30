@@ -43,24 +43,26 @@ pub async fn main() -> Result<()> {
         ])
         .interact()?;
 
+    let contract_id: String = Input::new().with_prompt("Enter contract id").interact()?;
+
     let input = match function_selection {
         0 => ContractCallInput::AssetLendingPool(
-            AssetLendingPoolFunctionsInput::GetUtilization,
+            AssetLendingPoolFunctionsInput::GetUtilization(contract_id),
         ),
         1 => ContractCallInput::AssetLendingPool(
-            AssetLendingPoolFunctionsInput::GetBorrowRate,
+            AssetLendingPoolFunctionsInput::GetBorrowRate(contract_id),
         ),
         2 => ContractCallInput::AssetLendingPool(
-            AssetLendingPoolFunctionsInput::GetSupplyRate,
+            AssetLendingPoolFunctionsInput::GetSupplyRate(contract_id),
         ),
         3 => ContractCallInput::AssetLendingPool(
-            AssetLendingPoolFunctionsInput::UpdateBorrowIndex,
+            AssetLendingPoolFunctionsInput::UpdateBorrowIndex(contract_id),
         ),
         4 => ContractCallInput::AssetLendingPool(
-            AssetLendingPoolFunctionsInput::UpdateSupplyIndex,
+            AssetLendingPoolFunctionsInput::UpdateSupplyIndex(contract_id),
         ),
         5 => ContractCallInput::AssetLendingPool(
-            AssetLendingPoolFunctionsInput::UpdateIndices,
+            AssetLendingPoolFunctionsInput::UpdateIndices(contract_id),
         ),
         6 => {
             let user_principal: u64 = Input::new()
@@ -74,6 +76,7 @@ pub async fn main() -> Result<()> {
                 AssetLendingPoolFunctionsInput::CalculateCurrentDebt(CalculateCurrentDebtArgs {
                     user_principal,
                     user_borrow_index,
+                    contract_id
                 }),
             )
         }
@@ -84,7 +87,7 @@ pub async fn main() -> Result<()> {
 
             ContractCallInput::AssetLendingPool(
                 AssetLendingPoolFunctionsInput::CalculateCurrentDeposit(
-                    CalculateCurrentDepositArgs { user_shares },
+                    CalculateCurrentDepositArgs { user_shares, contract_id },
                 ),
             )
         }
@@ -101,6 +104,7 @@ pub async fn main() -> Result<()> {
                     CalculateHealthFactorArgs {
                         collateral_value,
                         borrowed_value,
+                        contract_id
                     },
                 ),
             )
@@ -117,6 +121,7 @@ pub async fn main() -> Result<()> {
                 AssetLendingPoolFunctionsInput::UpdateOracle(UpdateOracleArgs {
                     asset,
                     multiplier,
+                    contract_id
                 }),
             )
         }
@@ -128,6 +133,7 @@ pub async fn main() -> Result<()> {
             ContractCallInput::AssetLendingPool(
                 AssetLendingPoolFunctionsInput::GetAssetMultiplier(GetAssetMultiplierArgs {
                     asset,
+                    contract_id
                 }),
             )
         }
@@ -139,6 +145,7 @@ pub async fn main() -> Result<()> {
             ContractCallInput::AssetLendingPool(
                 AssetLendingPoolFunctionsInput::GetUserDepositPosition(GetUserDepositPositon {
                     user,
+                    contract_id
                 }),
             )
         }
@@ -154,6 +161,7 @@ pub async fn main() -> Result<()> {
                 AssetLendingPoolFunctionsInput::GetUserBorrowPosition(GetUserBorrowPosition {
                     user,
                     collateral_asset,
+                    contract_id
                 }),
             )
         }
@@ -169,6 +177,7 @@ pub async fn main() -> Result<()> {
                 AssetLendingPoolFunctionsInput::GetMaxBorrowAmount(GetMaxBorrowAmount {
                     collateral_amount,
                     collateral_asset,
+                    contract_id
                 }),
             )
         }
@@ -185,12 +194,13 @@ pub async fn main() -> Result<()> {
                     IsPositionLiquidatableArgs {
                         user,
                         collateral_asset,
+                        contract_id
                     },
                 ),
             )
         }
         15 => ContractCallInput::AssetLendingPool(
-            AssetLendingPoolFunctionsInput::GetPoolStats,
+            AssetLendingPoolFunctionsInput::GetPoolStats(contract_id),
         ),
         16 => {
             let user: String = Input::new()
@@ -201,7 +211,7 @@ pub async fn main() -> Result<()> {
                 .interact()?;
 
             ContractCallInput::AssetLendingPool(
-                AssetLendingPoolFunctionsInput::Deposit(DepositArgs { user, amount }),
+                AssetLendingPoolFunctionsInput::Deposit(DepositArgs { user, amount, contract_id }),
             )
         }
         17 => {
@@ -216,6 +226,7 @@ pub async fn main() -> Result<()> {
                 AssetLendingPoolFunctionsInput::Withdraw(WithdrawArgs {
                     user,
                     yield_token_amount,
+                    contract_id
                 }),
             )
         }
@@ -235,6 +246,7 @@ pub async fn main() -> Result<()> {
                     user,
                     collateral_amount,
                     collateral_asset,
+                    contract_id
                 }),
             )
         }
@@ -254,6 +266,7 @@ pub async fn main() -> Result<()> {
                     user,
                     collateralized_asset,
                     repay_amount,
+                    contract_id
                 }),
             )
         }
@@ -277,6 +290,7 @@ pub async fn main() -> Result<()> {
                     borrower,
                     dept_to_cover,
                     collateral_asset,
+                    contract_id
                 }),
             )
         }
