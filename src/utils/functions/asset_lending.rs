@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use hedera::{ContractCallQuery, ContractExecuteTransaction, ContractFunctionParameters};
+use hedera::{ContractCallQuery, ContractExecuteTransaction, ContractFunctionParameters, Hbar};
 use num_bigint::BigUint;
 use crate::utils::functions::commons::ContractFunctionProcessor;
 use crate::utils::functions::FunctionCallOutput;
@@ -216,7 +216,8 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
 
         transaction.gas(10_000_000);
         let mut query_transaction = ContractCallQuery::new();
-
+        query_transaction.gas(5_000_000);
+        query_transaction.payment_amount(Hbar::new(10));
 
 
         match self {
@@ -714,7 +715,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
             AssetLendingPoolFunctionsInput::GetTreasuryAccount(contract_id)=> {
                 query_transaction.contract_id(contract_id.parse()?);
                 let params = ContractFunctionParameters::new();
-                query_transaction.function_with_parameters("getTreasury", &params);
+                query_transaction.function_with_parameters("getTreasuryAccount", &params);
 
                 let response = query_transaction.execute_with_timeout(&wallet.client, Duration::from_secs(180)).await?;
 

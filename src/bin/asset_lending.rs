@@ -1,5 +1,6 @@
 use anyhow::Result;
 use dialoguer::{Input, Select};
+use uuid::Uuid;
 use contract_integrator::utils::functions::asset_lending::{
     AssetLendingPoolFunctionsInput, AssetLendingPoolFunctionsOutput, CalculateCurrentDebtArgs,
     CalculateCurrentDepositArgs, CalculateHealthFactorArgs, UpdateOracleArgs,
@@ -40,6 +41,8 @@ pub async fn main() -> Result<()> {
             "Borrow",
             "Repay",
             "Liquidate",
+            "GetTreasuryAccount",
+            "GetReserveAccount"
         ])
         .interact()?;
 
@@ -294,6 +297,22 @@ pub async fn main() -> Result<()> {
                 }),
             )
         }
+        21 => {
+
+            ContractCallInput::AssetLendingPool(
+                AssetLendingPoolFunctionsInput::GetTreasuryAccount(
+                    contract_id
+                )
+            )
+        }
+        22 =>{
+
+            ContractCallInput::AssetLendingPool(
+                AssetLendingPoolFunctionsInput::GetReserveAccount(
+                    contract_id
+                )
+            )
+        }
         _ => panic!("Invalid selection"),
     };
 
@@ -423,6 +442,14 @@ pub async fn main() -> Result<()> {
                 AssetLendingPoolFunctionsOutput::Liquidate(result) => {
                     println!("✓ Liquidation Successful");
                     println!("Transaction ID: {}", result.transaction_id);
+                }
+                AssetLendingPoolFunctionsOutput::GetReserveAccount(result)=>{
+                    println!("Data :: {:?}", result.output.unwrap().account);
+                    println!("Transaction ID :: {:?}", result.transaction_id);
+                }
+                AssetLendingPoolFunctionsOutput::GetTreasuryAccount(result)=>{
+                    println!("Data :: {:?}", result.output.unwrap().account);
+                    println!("Transaction ID :: {:?}", result.transaction_id);
                 }
                 _ => println!("Query successful"),
             }
