@@ -1,6 +1,6 @@
 use crate::wallet::wallet::ActionWallet;
 use anyhow::Result;
-use hedera::{ContractId, ContractInfoQuery};
+use hedera::{AccountBalance, AccountBalanceQuery, AccountId, Client, ContractId, ContractInfoQuery};
 use serde_json::json;
 use std::str::FromStr;
 use tokio::time::{Duration, sleep};
@@ -68,4 +68,14 @@ pub async fn get_contract_id_from_evm_address(evm_address: &str) -> Result<Contr
             }
         }
     }
+}
+
+pub async fn get_account_balances(client: &Client,account_id: &str)->Result<AccountBalance> {
+    let account_value = AccountId::from_str(account_id)?;
+    let mut q = AccountBalanceQuery::new();
+    q.account_id(account_value);
+
+    let result = q.execute(client).await?;
+
+    Ok(result)
 }
