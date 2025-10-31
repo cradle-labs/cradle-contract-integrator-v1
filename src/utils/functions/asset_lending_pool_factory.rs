@@ -56,6 +56,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFactoryFunctionOutput> for AssetL
             AssetLendingPoolFactoryFunctionInput::CreatePool(args)=> {
                 let mut transaction = ContractExecuteTransaction::new();
                 transaction.contract_id(contract_ids.asset_lending_pool_factory);
+                transaction.gas(10_000_000);
 
                 params.add_uint64(args.ltv);
                 params.add_uint64(args.optimal_utilization);
@@ -65,7 +66,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFactoryFunctionOutput> for AssetL
                 params.add_uint64(args.liquidation_threshold);
                 params.add_uint64(args.liquidation_discount);
                 params.add_uint64(args.reserve_factor);
-                params.add_string(args.lending.clone());
+                params.add_address(args.lending.clone().as_str());
                 params.add_address(args.yield_contract.as_str());
                 params.add_string(args.lending_pool.clone());
 
@@ -94,7 +95,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFactoryFunctionOutput> for AssetL
             AssetLendingPoolFactoryFunctionInput::GetPool(args)=>{
                 let mut transaction = ContractCallQuery::new();
                 transaction.contract_id(contract_ids.asset_lending_pool_factory);
-
+                transaction.gas(5_000_000);
                 params.add_string(args.name.clone());
 
                 transaction.function_with_parameters("getPool", &params);
