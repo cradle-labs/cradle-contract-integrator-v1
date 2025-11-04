@@ -56,11 +56,11 @@ pub async fn main() -> Result<()> {
                 .default(1000)
                 .interact()?;
             let lending: String = Input::new()
-                .with_prompt("Lending Asset ID")
+                .with_prompt("Lending Asset Address")
                 .default(env::var("LENDING").unwrap_or_default())
                 .interact()?;
-            let yield_contract: ContractId = Input::new()
-                .with_prompt("Yield Contract ID")
+            let yield_contract: String = Input::new()
+                .with_prompt("Yield Contract Manager Address ")
                 .interact()?;
             let lending_pool: String = Input::new()
                 .with_prompt("Lending Pool Name")
@@ -78,7 +78,7 @@ pub async fn main() -> Result<()> {
                     liquidation_discount,
                     reserve_factor,
                     lending,
-                    yield_contract: yield_contract.to_solidity_address()?,
+                    yield_contract: yield_contract,
                     lending_pool,
                 }),
             )

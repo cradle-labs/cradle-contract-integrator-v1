@@ -28,6 +28,7 @@ impl ContractFunctionProcessor<OrderBookSettlerFunctionOutput> for OrderBookSett
         let contract_ids = wallet.get_contract_ids()?;
         let mut transaction = ContractExecuteTransaction::new();
         transaction.contract_id(contract_ids.orderbook_settler);
+        transaction.gas(5_000_000);
 
         let mut params = ContractFunctionParameters::new();
 
