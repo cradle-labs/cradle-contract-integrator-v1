@@ -1,85 +1,85 @@
+use crate::utils::functions::FunctionCallOutput;
+use crate::utils::functions::commons::ContractFunctionProcessor;
+use crate::wallet::wallet::ActionWallet;
 use anyhow::anyhow;
 use hedera::{ContractCallQuery, ContractExecuteTransaction, ContractFunctionParameters, Hbar};
 use num_bigint::BigUint;
-use crate::utils::functions::commons::ContractFunctionProcessor;
-use crate::utils::functions::FunctionCallOutput;
-use crate::wallet::wallet::ActionWallet;
 use tokio::time::Duration;
 pub struct CalculateCurrentDebtArgs {
     pub user_principal: u64,
     pub user_borrow_index: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub struct CalculateCurrentDepositArgs {
     pub user_shares: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub struct CalculateHealthFactorArgs {
     pub collateral_value: u64,
     pub borrowed_value: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub struct UpdateOracleArgs {
     pub asset: String,
     pub multiplier: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub struct GetAssetMultiplierArgs {
     pub asset: String,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub struct GetUserDepositPositon {
     pub user: String,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub struct GetUserBorrowPosition {
     pub user: String,
     pub collateral_asset: String,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub struct GetMaxBorrowAmount {
     pub collateral_amount: u64,
     pub collateral_asset: String,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub struct IsPositionLiquidatableArgs {
     pub user: String,
     pub collateral_asset: String,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
-pub struct DepositArgs  {
+pub struct DepositArgs {
     pub user: String,
     pub amount: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
-pub struct WithdrawArgs  {
+pub struct WithdrawArgs {
     pub user: String,
     pub yield_token_amount: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub struct BorrowArgs {
     pub user: String,
     pub collateral_amount: u64,
     pub collateral_asset: String,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub struct RepayArgs {
     pub user: String,
     pub collateralized_asset: String,
     pub repay_amount: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub struct LiquidateArgs {
@@ -87,7 +87,7 @@ pub struct LiquidateArgs {
     pub borrower: String,
     pub dept_to_cover: u64,
     pub collateral_asset: String,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
 pub enum AssetLendingPoolFunctionsInput {
@@ -113,41 +113,41 @@ pub enum AssetLendingPoolFunctionsInput {
     Repay(RepayArgs),
     Liquidate(LiquidateArgs),
     GetReserveAccount(String),
-    GetTreasuryAccount(String)
+    GetTreasuryAccount(String),
 }
 
 pub struct GetUtilizationOutput {
-    pub utilization: u64
+    pub utilization: u64,
 }
 
 pub struct GetBorrowRateOutput {
-    pub borrow_rate: u64
+    pub borrow_rate: u64,
 }
 
 pub struct GetSupplyRateOutput {
-    pub supply_rate: u64
+    pub supply_rate: u64,
 }
 
 pub struct CalculateCurrentDebtOutput {
-    pub current_debt: u64
+    pub current_debt: u64,
 }
 
 pub struct CalculateCurrentDepositOutput {
-    pub current_deposit: u64
+    pub current_deposit: u64,
 }
 
 pub struct CalculateHealthFactorOutput {
-    pub health_factor: u64
+    pub health_factor: u64,
 }
 
 pub struct GetAssetMultiplierOutput {
-    pub multiplier: u64
+    pub multiplier: u64,
 }
 
 pub struct GetUserDepositPositonOutput {
     pub yield_token_balance: u64,
     pub underlying_value: u64,
-    pub current_supply_apy: u64
+    pub current_supply_apy: u64,
 }
 
 pub struct GetUserBorrowPositionOutput {
@@ -155,16 +155,16 @@ pub struct GetUserBorrowPositionOutput {
     pub current_dept: u64,
     pub collateral_amount: u64,
     pub health_factor: u64,
-    pub borrow_index: u64
+    pub borrow_index: u64,
 }
 
 pub struct GetMaxBorrowAmountOutput {
-    pub max_borrow_amount: u64
+    pub max_borrow_amount: u64,
 }
 
 pub struct IsPositionLiquidatableOutput {
     pub liquidatable: bool,
-    pub health_factor: u64
+    pub health_factor: u64,
 }
 
 pub struct GetPoolStatsOutput {
@@ -175,11 +175,24 @@ pub struct GetPoolStatsOutput {
     pub borrow_rate: u64,
     pub supply_rate: u64,
     pub borrow_index: u64,
-    pub supply_index: u64
+    pub supply_index: u64,
 }
 
 pub struct GetAccount {
-    pub account: String
+    pub account: String,
+}
+
+pub struct BorrowResultArgs {
+    pub borrow_index: u64,
+    pub borrowed_amount: u64,
+}
+
+pub struct RepayResultArgs {
+    pub collateral_unlocked: u64,
+}
+
+pub struct LiquidateResultArgs {
+    pub obtained_collateral: u64,
 }
 
 pub enum AssetLendingPoolFunctionsOutput {
@@ -201,15 +214,18 @@ pub enum AssetLendingPoolFunctionsOutput {
     GetPoolStats(FunctionCallOutput<GetPoolStatsOutput>),
     Deposit(FunctionCallOutput<(u64, u64)>),
     Withdraw(FunctionCallOutput<(u64, u64)>),
-    Borrow(FunctionCallOutput<u64>),
-    Repay(FunctionCallOutput<()>),
-    Liquidate(FunctionCallOutput<()>),
+    Borrow(FunctionCallOutput<BorrowResultArgs>),
+    Repay(FunctionCallOutput<RepayResultArgs>),
+    Liquidate(FunctionCallOutput<LiquidateResultArgs>),
     GetReserveAccount(FunctionCallOutput<GetAccount>),
-    GetTreasuryAccount(FunctionCallOutput<GetAccount>)
+    GetTreasuryAccount(FunctionCallOutput<GetAccount>),
 }
 
 impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLendingPoolFunctionsInput {
-    async fn process(&self, wallet: &mut ActionWallet) -> anyhow::Result<AssetLendingPoolFunctionsOutput> {
+    async fn process(
+        &self,
+        wallet: &mut ActionWallet,
+    ) -> anyhow::Result<AssetLendingPoolFunctionsOutput> {
         let contract_ids = wallet.get_contract_ids()?;
 
         let mut transaction = ContractExecuteTransaction::new();
@@ -219,102 +235,107 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
         query_transaction.gas(5_000_000);
         query_transaction.payment_amount(Hbar::new(10));
 
-
         match self {
-            AssetLendingPoolFunctionsInput::GetUtilization(contract_id)=>{
+            AssetLendingPoolFunctionsInput::GetUtilization(contract_id) => {
                 query_transaction.contract_id(contract_id.parse()?);
                 query_transaction.function("getUtilization");
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let utilization: u64 = response.get_u256(0).unwrap().try_into()?;
 
                 let output = FunctionCallOutput {
                     transaction_id: "".to_string(),
-                    output: Some(GetUtilizationOutput {
-                        utilization
-                    })
+                    output: Some(GetUtilizationOutput { utilization }),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::GetUtilization(output))
-            },
-            AssetLendingPoolFunctionsInput::GetBorrowRate(contract_id)=>{
+            }
+            AssetLendingPoolFunctionsInput::GetBorrowRate(contract_id) => {
                 query_transaction.contract_id(contract_id.parse()?);
                 query_transaction.function("getBorrowRate");
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let borrow_rate: u64 = response.get_u256(0).unwrap().try_into()?;
 
                 let output = FunctionCallOutput {
                     transaction_id: "".to_string(),
-                    output: Some(GetBorrowRateOutput {
-                        borrow_rate
-                    })
+                    output: Some(GetBorrowRateOutput { borrow_rate }),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::GetBorrowRate(output))
-            },
-            AssetLendingPoolFunctionsInput::GetSupplyRate(contract_id)=>{
+            }
+            AssetLendingPoolFunctionsInput::GetSupplyRate(contract_id) => {
                 query_transaction.contract_id(contract_id.parse()?);
                 query_transaction.function("getSupplyRate");
 
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let supply_rate: u64 = response.get_u256(0).unwrap().try_into()?;
 
                 let output = FunctionCallOutput {
                     transaction_id: "".to_string(),
-                    output: Some(GetSupplyRateOutput {
-                        supply_rate
-                    })
+                    output: Some(GetSupplyRateOutput { supply_rate }),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::GetSupplyRate(output))
-            },
-            AssetLendingPoolFunctionsInput::UpdateBorrowIndex(contract_id)=>{
+            }
+            AssetLendingPoolFunctionsInput::UpdateBorrowIndex(contract_id) => {
                 query_transaction.contract_id(contract_id.parse()?);
                 transaction.function("updateBorrowIndex");
 
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: None,
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::UpdateBorrowIndex(output))
-            },
-            AssetLendingPoolFunctionsInput::UpdateSupplyIndex(contract_id)=>{
+            }
+            AssetLendingPoolFunctionsInput::UpdateSupplyIndex(contract_id) => {
                 transaction.contract_id(contract_id.parse()?);
                 transaction.function("updateSupplyIndex");
 
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: None,
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::UpdateSupplyIndex(output))
-            },
-            AssetLendingPoolFunctionsInput::UpdateIndices(contract_id)=>{
+            }
+            AssetLendingPoolFunctionsInput::UpdateIndices(contract_id) => {
                 transaction.contract_id(contract_id.parse()?);
                 transaction.function("updateIndices");
 
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: None,
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::UpdateIndices(output))
-            },
-            AssetLendingPoolFunctionsInput::CalculateCurrentDebt(args)=>{
+            }
+            AssetLendingPoolFunctionsInput::CalculateCurrentDebt(args) => {
                 query_transaction.contract_id(args.contract_id.parse()?);
                 query_transaction.function("calculateCurrentDebt");
 
@@ -326,21 +347,24 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 params.add_uint256(user_principal);
                 params.add_uint256(user_borrow_index);
 
-                query_transaction.function_parameters(params.to_bytes(Some("calculateCurrentDebt")));
+                query_transaction
+                    .function_parameters(params.to_bytes(Some("calculateCurrentDebt")));
 
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
                 let current_debt: u64 = response.get_u256(0).unwrap().try_into()?;
 
                 let output = FunctionCallOutput {
                     transaction_id: "".to_string(),
-                    output: Some(CalculateCurrentDebtOutput {
-                        current_debt
-                    })
+                    output: Some(CalculateCurrentDebtOutput { current_debt }),
                 };
 
-                Ok(AssetLendingPoolFunctionsOutput::CalculateCurrentDebt(output))
-            },
-            AssetLendingPoolFunctionsInput::CalculateCurrentDeposit(args)=>{
+                Ok(AssetLendingPoolFunctionsOutput::CalculateCurrentDebt(
+                    output,
+                ))
+            }
+            AssetLendingPoolFunctionsInput::CalculateCurrentDeposit(args) => {
                 query_transaction.contract_id(args.contract_id.parse()?);
                 query_transaction.function("calculateCurrentDeposit");
 
@@ -348,22 +372,25 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 let user_shares = BigUint::from(args.user_shares);
                 params.add_uint256(user_shares);
 
-                query_transaction.function_parameters(params.to_bytes(Some("calculateCurrentDeposit")));
+                query_transaction
+                    .function_parameters(params.to_bytes(Some("calculateCurrentDeposit")));
 
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let current_deposit: u64 = response.get_u256(0).unwrap().try_into()?;
 
                 let output = FunctionCallOutput {
                     transaction_id: "".to_string(),
-                    output: Some(CalculateCurrentDepositOutput {
-                        current_deposit
-                    })
+                    output: Some(CalculateCurrentDepositOutput { current_deposit }),
                 };
 
-                Ok(AssetLendingPoolFunctionsOutput::CalculateCurrentDeposit(output))
-            },
-            AssetLendingPoolFunctionsInput::CalculateHealthFactor(args)=>{
+                Ok(AssetLendingPoolFunctionsOutput::CalculateCurrentDeposit(
+                    output,
+                ))
+            }
+            AssetLendingPoolFunctionsInput::CalculateHealthFactor(args) => {
                 query_transaction.contract_id(args.contract_id.parse()?);
                 query_transaction.function("calculateHealthFactor");
 
@@ -373,20 +400,23 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 params.add_uint256(collateral_value);
                 params.add_uint256(borrowed_value);
 
-                query_transaction.function_parameters(params.to_bytes(Some("calculateHealthFactor")));
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                query_transaction
+                    .function_parameters(params.to_bytes(Some("calculateHealthFactor")));
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
                 let health_factor: u64 = response.get_u256(0).unwrap().try_into()?;
 
                 let output = FunctionCallOutput {
                     transaction_id: "".to_string(),
-                    output: Some(CalculateHealthFactorOutput {
-                        health_factor
-                    })
+                    output: Some(CalculateHealthFactorOutput { health_factor }),
                 };
 
-                Ok(AssetLendingPoolFunctionsOutput::CalculateHealthFactor(output))
-            },
-            AssetLendingPoolFunctionsInput::UpdateOracle(args)=>{
+                Ok(AssetLendingPoolFunctionsOutput::CalculateHealthFactor(
+                    output,
+                ))
+            }
+            AssetLendingPoolFunctionsInput::UpdateOracle(args) => {
                 transaction.contract_id(args.contract_id.parse()?);
                 transaction.function("updateOracle");
 
@@ -397,48 +427,49 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 params.add_uint256(multiplier);
 
                 transaction.function_parameters(params.to_bytes(Some("updateOracle")));
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: None,
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::UpdateOracle(output))
-            },
-            AssetLendingPoolFunctionsInput::GetAssetMultiplier(args)=>{
-
+            }
+            AssetLendingPoolFunctionsInput::GetAssetMultiplier(args) => {
                 query_transaction.contract_id(args.contract_id.parse()?);
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.asset.as_str());
                 query_transaction.function_with_parameters("getMultiplier", &params);
 
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let multiplier: u64 = response.get_u256(0).unwrap().try_into()?;
 
                 let output = FunctionCallOutput {
                     transaction_id: "".to_string(),
-                    output: Some(GetAssetMultiplierOutput {
-                        multiplier
-                    })
+                    output: Some(GetAssetMultiplierOutput { multiplier }),
                 };
 
-
                 Ok(AssetLendingPoolFunctionsOutput::GetAssetMultiplier(output))
-            },
-            AssetLendingPoolFunctionsInput::GetUserDepositPosition(args)=>{
-
+            }
+            AssetLendingPoolFunctionsInput::GetUserDepositPosition(args) => {
                 query_transaction.contract_id(args.contract_id.parse()?);
                 let mut params = ContractFunctionParameters::new();
 
                 params.add_address(args.user.as_str());
                 query_transaction.function_with_parameters("getUserDepositPosition", &params);
 
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let yield_token_balance: u64 = response.get_u256(0).unwrap().try_into()?;
                 let underlying_value: u64 = response.get_u256(1).unwrap().try_into()?;
@@ -449,21 +480,24 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                     output: Some(GetUserDepositPositonOutput {
                         yield_token_balance,
                         underlying_value,
-                        current_supply_apy
-                    })
+                        current_supply_apy,
+                    }),
                 };
 
-                Ok(AssetLendingPoolFunctionsOutput::GetUserDepositPosition(output))
-            },
-            AssetLendingPoolFunctionsInput::GetUserBorrowPosition(args)=>{
-
+                Ok(AssetLendingPoolFunctionsOutput::GetUserDepositPosition(
+                    output,
+                ))
+            }
+            AssetLendingPoolFunctionsInput::GetUserBorrowPosition(args) => {
                 query_transaction.contract_id(args.contract_id.parse()?);
                 let mut params = ContractFunctionParameters::new();
                 params.add_address(args.user.as_str());
                 params.add_address(args.collateral_asset.as_str());
                 query_transaction.function_with_parameters("getUserBorrowPosition", &params);
 
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
                 let principal_borrowed: u64 = response.get_u256(0).unwrap().try_into()?;
                 let current_dept: u64 = response.get_u256(1).unwrap().try_into()?;
                 let collateral_amount: u64 = response.get_u256(2).unwrap().try_into()?;
@@ -477,37 +511,37 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                         current_dept,
                         collateral_amount,
                         health_factor,
-                        borrow_index
-                    })
+                        borrow_index,
+                    }),
                 };
 
-                Ok(AssetLendingPoolFunctionsOutput::GetUserBorrowPosition(output))
-            },
-            AssetLendingPoolFunctionsInput::GetMaxBorrowAmount(args)=>{
-
+                Ok(AssetLendingPoolFunctionsOutput::GetUserBorrowPosition(
+                    output,
+                ))
+            }
+            AssetLendingPoolFunctionsInput::GetMaxBorrowAmount(args) => {
                 query_transaction.contract_id(args.contract_id.parse()?);
                 let mut params = ContractFunctionParameters::new();
 
                 let collateral_amount = BigUint::from(args.collateral_amount);
                 params.add_uint256(collateral_amount);
                 params.add_address(args.collateral_asset.as_str());
-                
+
                 query_transaction.function_with_parameters("getMaxBorrowAmount", &params);
 
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let max_borrow_amount: u64 = response.get_u256(0).unwrap().try_into()?;
                 let output = FunctionCallOutput {
                     transaction_id: "".to_string(),
-                    output: Some(GetMaxBorrowAmountOutput {
-                        max_borrow_amount
-                    })
+                    output: Some(GetMaxBorrowAmountOutput { max_borrow_amount }),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::GetMaxBorrowAmount(output))
-            },
-            AssetLendingPoolFunctionsInput::IsPositionLiquidatable(args)=>{
-
+            }
+            AssetLendingPoolFunctionsInput::IsPositionLiquidatable(args) => {
                 query_transaction.contract_id(args.contract_id.parse()?);
                 let mut params = ContractFunctionParameters::new();
 
@@ -515,8 +549,10 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 params.add_address(args.collateral_asset.as_str());
 
                 query_transaction.function_with_parameters("isPositionLiquidatable", &params);
-                
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let liquidatable: bool = response.get_bool(0).unwrap();
                 let health_factor: u64 = response.get_u256(1).unwrap().try_into()?;
@@ -525,17 +561,21 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                     transaction_id: "".to_string(),
                     output: Some(IsPositionLiquidatableOutput {
                         liquidatable,
-                        health_factor
-                    })
+                        health_factor,
+                    }),
                 };
 
-                Ok(AssetLendingPoolFunctionsOutput::IsPositionLiquidatable(output))
-            },
-            AssetLendingPoolFunctionsInput::GetPoolStats(contract_id)=>{
+                Ok(AssetLendingPoolFunctionsOutput::IsPositionLiquidatable(
+                    output,
+                ))
+            }
+            AssetLendingPoolFunctionsInput::GetPoolStats(contract_id) => {
                 query_transaction.contract_id(contract_id.parse()?);
                 query_transaction.function("getPoolStats");
 
-                let response = query_transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let total_supplied: u64 = response.get_u256(0).unwrap().try_into()?;
                 let total_borrowed: u64 = response.get_u256(1).unwrap().try_into()?;
@@ -556,14 +596,14 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                         borrow_rate,
                         supply_rate,
                         borrow_index,
-                        supply_index
-                    })
+                        supply_index,
+                    }),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::GetPoolStats(output))
-            },
-            AssetLendingPoolFunctionsInput::Deposit(args)=>{
-                transaction.contract_id(args.contract_id.parse( )?);
+            }
+            AssetLendingPoolFunctionsInput::Deposit(args) => {
+                transaction.contract_id(args.contract_id.parse()?);
                 transaction.function("deposit");
 
                 let mut params = ContractFunctionParameters::new();
@@ -573,24 +613,34 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 params.add_uint256(amount);
 
                 transaction.function_parameters(params.to_bytes(Some("deposit")));
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
                 let record = response.get_record(&mut wallet.client).await?;
 
-                let res = record.contract_function_result.ok_or_else(|| anyhow!("Failed to get function result"))?;
-                let supply_index:u64 = res.get_u256(0).ok_or_else(|| anyhow!("Failed to get supply index"))?.try_into()?;
-                let yield_amount:u64 = res.get_u256(1).ok_or_else(|| anyhow!("Failed to get supply index"))?.try_into()?;
+                let res = record
+                    .contract_function_result
+                    .ok_or_else(|| anyhow!("Failed to get function result"))?;
+                let supply_index: u64 = res
+                    .get_u256(0)
+                    .ok_or_else(|| anyhow!("Failed to get supply index"))?
+                    .try_into()?;
+                let yield_amount: u64 = res
+                    .get_u256(1)
+                    .ok_or_else(|| anyhow!("Failed to get supply index"))?
+                    .try_into()?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: Some((supply_index, yield_amount))
+                    output: Some((supply_index, yield_amount)),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::Deposit(output))
-            },
-            AssetLendingPoolFunctionsInput::Withdraw(args)=>{
+            }
+            AssetLendingPoolFunctionsInput::Withdraw(args) => {
                 transaction.contract_id(args.contract_id.parse()?);
                 transaction.function("withdraw");
 
@@ -601,25 +651,34 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 params.add_uint256(yield_token_amount);
 
                 transaction.function_parameters(params.to_bytes(Some("withdraw")));
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
                 let record = response.get_record(&mut wallet.client).await?;
 
-                let res = record.contract_function_result.ok_or_else(|| anyhow!("Failed to get function result"))?;
-                let supply_index:u64 = res.get_u256(0).ok_or_else(|| anyhow!("Failed to get supply index"))?.try_into()?;
-                let underlying_value:u64 = res.get_u256(1).ok_or_else(|| anyhow!("Failed to get supply index"))?.try_into()?;
-
+                let res = record
+                    .contract_function_result
+                    .ok_or_else(|| anyhow!("Failed to get function result"))?;
+                let supply_index: u64 = res
+                    .get_u256(0)
+                    .ok_or_else(|| anyhow!("Failed to get supply index"))?
+                    .try_into()?;
+                let underlying_value: u64 = res
+                    .get_u256(1)
+                    .ok_or_else(|| anyhow!("Failed to get supply index"))?
+                    .try_into()?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: Some((supply_index, underlying_value))
+                    output: Some((supply_index, underlying_value)),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::Withdraw(output))
-            },
-            AssetLendingPoolFunctionsInput::Borrow(args)=>{
+            }
+            AssetLendingPoolFunctionsInput::Borrow(args) => {
                 transaction.contract_id(args.contract_id.parse()?);
                 transaction.function("borrow");
 
@@ -631,23 +690,37 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 params.add_address(args.collateral_asset.as_str());
 
                 transaction.function_parameters(params.to_bytes(Some("borrow")));
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
                 let record = response.get_record(&mut wallet.client).await?;
-                let res = record.contract_function_result.ok_or_else(|| anyhow!("Failed to get function result"))?;
-                let borrow_index:u64 = res.get_u256(0).ok_or_else(|| anyhow!("Failed to get borrow index"))?.try_into()?;
+                let res = record
+                    .contract_function_result
+                    .ok_or_else(|| anyhow!("Failed to get function result"))?;
+                let borrow_index: u64 = res
+                    .get_u256(0)
+                    .ok_or_else(|| anyhow!("Failed to get borrow index"))?
+                    .try_into()?;
 
+                let borrowed_amount: u64 = res
+                    .get_u256(1)
+                    .ok_or_else(|| anyhow!("Failed to get borrowd amount"))?
+                    .try_into()?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: Some(borrow_index)
+                    output: Some(BorrowResultArgs {
+                        borrow_index,
+                        borrowed_amount,
+                    }),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::Borrow(output))
-            },
-            AssetLendingPoolFunctionsInput::Repay(args)=>{
+            }
+            AssetLendingPoolFunctionsInput::Repay(args) => {
                 transaction.contract_id(args.contract_id.parse()?);
                 transaction.function("repay");
 
@@ -659,18 +732,33 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 params.add_uint256(repay_amount);
 
                 transaction.function_parameters(params.to_bytes(Some("repay")));
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
+                let record = response
+                    .get_record(&wallet.client)
+                    .await?
+                    .contract_function_result
+                    .ok_or_else(|| anyhow!("Failed to get function result"))?;
+
+                let collateral_unlocked: u64 = record
+                    .get_u256(0)
+                    .ok_or_else(|| anyhow!("Failed to get collateral amount"))?
+                    .try_into()?;
+
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: Some(RepayResultArgs {
+                        collateral_unlocked,
+                    }),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::Repay(output))
-            },
-            AssetLendingPoolFunctionsInput::Liquidate(args)=>{
+            }
+            AssetLendingPoolFunctionsInput::Liquidate(args) => {
                 transaction.contract_id(args.contract_id.parse()?);
                 transaction.function("liquidate");
 
@@ -683,49 +771,68 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 params.add_address(args.collateral_asset.as_str());
 
                 transaction.function_parameters(params.to_bytes(Some("liquidate")));
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
+                let record = response
+                    .get_record(&wallet.client)
+                    .await?
+                    .contract_function_result
+                    .ok_or_else(|| anyhow!("Unable to get record result"))?;
+
+                let collateral_amount_obtained: u64 = record
+                    .get_u256(0)
+                    .ok_or_else(|| anyhow!("Unable to obtain collateral amount"))?
+                    .try_into()?;
+
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: Some(LiquidateResultArgs {
+                        obtained_collateral: collateral_amount_obtained,
+                    }),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::Liquidate(output))
-            },
-            AssetLendingPoolFunctionsInput::GetReserveAccount(contract_id)=> {
+            }
+            AssetLendingPoolFunctionsInput::GetReserveAccount(contract_id) => {
                 let params = ContractFunctionParameters::new();
                 query_transaction.contract_id(contract_id.parse()?);
                 query_transaction.function_with_parameters("getReserveAccount", &params);
 
-                let response = query_transaction.execute_with_timeout(&wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let reserve_account = response.get_address(0).unwrap();
 
                 let output = FunctionCallOutput {
                     transaction_id: "".to_string(),
                     output: Some(GetAccount {
-                        account: reserve_account
-                    })
+                        account: reserve_account,
+                    }),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::GetReserveAccount(output))
-            },
-            AssetLendingPoolFunctionsInput::GetTreasuryAccount(contract_id)=> {
+            }
+            AssetLendingPoolFunctionsInput::GetTreasuryAccount(contract_id) => {
                 query_transaction.contract_id(contract_id.parse()?);
                 let params = ContractFunctionParameters::new();
                 query_transaction.function_with_parameters("getTreasuryAccount", &params);
 
-                let response = query_transaction.execute_with_timeout(&wallet.client, Duration::from_secs(180)).await?;
+                let response = query_transaction
+                    .execute_with_timeout(&wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let reserve_account = response.get_address(0).unwrap();
 
                 let output = FunctionCallOutput {
                     transaction_id: "".to_string(),
                     output: Some(GetAccount {
-                        account: reserve_account
-                    })
+                        account: reserve_account,
+                    }),
                 };
 
                 Ok(AssetLendingPoolFunctionsOutput::GetReserveAccount(output))

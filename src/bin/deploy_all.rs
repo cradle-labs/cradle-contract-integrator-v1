@@ -1,19 +1,19 @@
 use anyhow::Result;
-use dialoguer::{Confirm, Input};
-use std::collections::HashMap;
-use std::env;
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use hedera::ContractId;
+use chrono::Utc;
 use contract_integrator::utils::contract::Contract;
 use contract_integrator::utils::functions::asset_factory::{
     AssetFactoryFunctionInput, AssetFactoryFunctionOutput, CreateAssetArgs,
 };
 use contract_integrator::utils::functions::{ContractCallInput, ContractCallOutput};
 use contract_integrator::wallet::wallet::ActionWallet;
+use dialoguer::{Confirm, Input};
+use hedera::ContractId;
 use serde::{Deserialize, Serialize};
-use chrono::Utc;
+use std::collections::HashMap;
+use std::env;
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 struct DeploymentStep {
@@ -71,11 +71,15 @@ async fn main() -> Result<()> {
     // Load or create deployment state
     let mut state = load_or_create_state()?;
     let state_path = get_state_file_path();
-    let has_existing_state = state_path.exists() && state.deployments.iter().any(|d| {
-        !matches!(d.status, DeploymentStatus::Pending)
-    }) || state.tokens.iter().any(|t| {
-        !matches!(t.status, DeploymentStatus::Pending)
-    });
+    let has_existing_state = state_path.exists()
+        && state
+            .deployments
+            .iter()
+            .any(|d| !matches!(d.status, DeploymentStatus::Pending))
+        || state
+            .tokens
+            .iter()
+            .any(|t| !matches!(t.status, DeploymentStatus::Pending));
 
     if has_existing_state {
         println!("\n⚠️  Found existing deployment state");
@@ -98,7 +102,9 @@ async fn main() -> Result<()> {
             }
             1 => {
                 println!("\nSelect contracts to redeploy:");
-                let contract_names: Vec<String> = state.deployments.iter()
+                let contract_names: Vec<String> = state
+                    .deployments
+                    .iter()
                     .map(|d| format!("{} ({})", d.name, d.contract_name))
                     .collect();
 
@@ -132,7 +138,11 @@ async fn main() -> Result<()> {
     let deployment_mode = {
         println!("\nWhat would you like to deploy?");
         let selection = dialoguer::Select::new()
-            .items(&["Full deployment (contracts + tokens)", "Contracts only", "Tokens only"])
+            .items(&[
+                "Full deployment (contracts + tokens)",
+                "Contracts only",
+                "Tokens only",
+            ])
             .default(0)
             .interact()?;
 
@@ -188,6 +198,12 @@ async fn main() -> Result<()> {
             env_var: "ASSET_LENDING_POOL_FACTORY".to_string(),
             order: 7,
         },
+        DeploymentStep {
+            name: "Listings Factory".to_string(),
+            contract_name: "CradleListingFactory".to_string(),
+            env_var: "CRADLE_LISTING_FACTORY_CONTRACT_ID".to_string(),
+            order: 8,
+        },
     ];
 
     println!("\n╔════════════════════════════════════════╗");
@@ -208,6 +224,7 @@ async fn main() -> Result<()> {
             println!("  5. Native Asset Issuer");
             println!("  6. Cradle Order Book Settler");
             println!("  7. Lending Pool Factory");
+            println!("  8. Cradle Listing Factory");
         }
         DeploymentMode::ContractsOnly => {
             println!("Deployment Plan (7 contract steps):");
@@ -218,6 +235,7 @@ async fn main() -> Result<()> {
             println!("  5. Native Asset Issuer");
             println!("  6. Cradle Order Book Settler");
             println!("  7. Lending Pool Factory");
+            println!("  8. Cradle Listing Factory");
         }
         DeploymentMode::TokensOnly => {
             println!("Deployment Plan (token creation):");
@@ -234,10 +252,7 @@ async fn main() -> Result<()> {
         DeploymentMode::TokensOnly => "Ready to create tokens?",
     };
 
-    if !Confirm::new()
-        .with_prompt(prompt_text)
-        .interact()?
-    {
+    if !Confirm::new().with_prompt(prompt_text).interact()? {
         println!("Deployment cancelled.");
         return Ok(());
     }
@@ -260,96 +275,114 @@ async fn main() -> Result<()> {
     // Deploy contracts 1-7 (including Lending Pool Factory) - skip if TokensOnly mode
     if !matches!(deployment_mode, DeploymentMode::TokensOnly) {
         for (_idx, step) in steps.iter().enumerate() {
-        // Skip if already completed
-        let deployment_state = state.deployments.iter().find(|d| d.env_var == step.env_var);
-        if let Some(ds) = deployment_state {
-            if matches!(ds.status, DeploymentStatus::Completed) {
-                println!("\n✓ {} already deployed (skipping)", step.name);
-                continue;
+            // Skip if already completed
+            let deployment_state = state.deployments.iter().find(|d| d.env_var == step.env_var);
+            if let Some(ds) = deployment_state {
+                if matches!(ds.status, DeploymentStatus::Completed) {
+                    println!("\n✓ {} already deployed (skipping)", step.name);
+                    continue;
+                }
             }
-        }
-        // After Asset Factory (step 2), create tokens
-        if step.order == 2 {
-            println!(
-                "\n┌─ Step {} of 7 ─────────────────────────────────┐",
-                step.order
-            );
-            println!("│ Deploying: {:<35} │", step.name);
-            println!("└───────────────────────────────────────────────┘");
+            // After Asset Factory (step 2), create tokens
+            if step.order == 2 {
+                println!(
+                    "\n┌─ Step {} of 7 ─────────────────────────────────┐",
+                    step.order
+                );
+                println!("│ Deploying: {:<35} │", step.name);
+                println!("└───────────────────────────────────────────────┘");
 
-            // Deploy Asset Factory with unlimited retries
-            if deploy_contract_with_unlimited_retries(step, &mut deployed_ids, &mut state).await? {
-                // Now create tokens immediately after Asset Factory (only if not ContractsOnly mode)
-                if !matches!(deployment_mode, DeploymentMode::ContractsOnly) {
-                    println!(
-                        "\n┌─ Step 2.5 of 7 ───────────────────────────────┐"
-                    );
-                    println!(
-                        "│ Creating Base Asset & Yield Asset Tokens      │"
-                    );
-                    println!("└───────────────────────────────────────────────┘");
+                // Deploy Asset Factory with unlimited retries
+                if deploy_contract_with_unlimited_retries(step, &mut deployed_ids, &mut state)
+                    .await?
+                {
+                    // Now create tokens immediately after Asset Factory (only if not ContractsOnly mode)
+                    if !matches!(deployment_mode, DeploymentMode::ContractsOnly) {
+                        println!("\n┌─ Step 2.5 of 7 ───────────────────────────────┐");
+                        println!("│ Creating Base Asset & Yield Asset Tokens      │");
+                        println!("└───────────────────────────────────────────────┘");
 
-                    loop {
-                        match create_tokens(&mut deployed_ids).await {
-                            Ok((base_id, yield_id)) => {
-                                // Store token IDs
-                                unsafe {
-                                    env::set_var("BASE_ASSET", base_id.clone());
-                                    env::set_var("YIELD_ASSET", yield_id.clone());
-                                }
-                                deployed_ids.insert("BASE_ASSET".to_string(), base_id.clone());
-                                deployed_ids.insert("YIELD_ASSET".to_string(), yield_id.clone());
-                                let reserve_id = ContractId::from_solidity_address(base_id.as_str())?.to_string();
-                                unsafe {
-                                    env::set_var("RESERVE_ASSET_ID", reserve_id.clone());
-                                }
-                                deployed_ids.insert("RESERVE_ASSET_ID".to_string(), reserve_id);
+                        loop {
+                            match create_tokens(&mut deployed_ids).await {
+                                Ok((base_id, yield_id)) => {
+                                    // Store token IDs
+                                    unsafe {
+                                        env::set_var("BASE_ASSET", base_id.clone());
+                                        env::set_var("YIELD_ASSET", yield_id.clone());
+                                    }
+                                    deployed_ids.insert("BASE_ASSET".to_string(), base_id.clone());
+                                    deployed_ids
+                                        .insert("YIELD_ASSET".to_string(), yield_id.clone());
+                                    let reserve_id =
+                                        ContractId::from_solidity_address(base_id.as_str())?
+                                            .to_string();
+                                    unsafe {
+                                        env::set_var("RESERVE_ASSET_ID", reserve_id.clone());
+                                    }
+                                    deployed_ids.insert("RESERVE_ASSET_ID".to_string(), reserve_id);
 
-                                update_token_status(&mut state, "BASE_ASSET", DeploymentStatus::Completed, Some(base_id.clone()));
-                                update_token_status(&mut state, "YIELD_ASSET", DeploymentStatus::Completed, Some(yield_id.clone()));
-                                if let Some(reserve_id_val) = deployed_ids.get("RESERVE_ASSET_ID") {
-                                    update_token_status(&mut state, "RESERVE_ASSET_ID", DeploymentStatus::Completed, Some(reserve_id_val.clone()));
-                                }
-                                save_state(&state)?;
-                                break;
-                            }
-                            Err(e) => {
-                                println!("  ✗ Token creation failed: {}", e);
-                                if !Confirm::new()
-                                    .with_prompt("Retry token creation?")
-                                    .interact()?
-                                {
-                                    println!("  Skipping token creation...");
+                                    update_token_status(
+                                        &mut state,
+                                        "BASE_ASSET",
+                                        DeploymentStatus::Completed,
+                                        Some(base_id.clone()),
+                                    );
+                                    update_token_status(
+                                        &mut state,
+                                        "YIELD_ASSET",
+                                        DeploymentStatus::Completed,
+                                        Some(yield_id.clone()),
+                                    );
+                                    if let Some(reserve_id_val) =
+                                        deployed_ids.get("RESERVE_ASSET_ID")
+                                    {
+                                        update_token_status(
+                                            &mut state,
+                                            "RESERVE_ASSET_ID",
+                                            DeploymentStatus::Completed,
+                                            Some(reserve_id_val.clone()),
+                                        );
+                                    }
+                                    save_state(&state)?;
                                     break;
+                                }
+                                Err(e) => {
+                                    println!("  ✗ Token creation failed: {}", e);
+                                    if !Confirm::new()
+                                        .with_prompt("Retry token creation?")
+                                        .interact()?
+                                    {
+                                        println!("  Skipping token creation...");
+                                        break;
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-        } else {
-            // Standard deployment for other steps with unlimited retries
-            println!(
-                "\n┌─ Step {} of 7 ─────────────────────────────────┐",
-                step.order
-            );
-            println!("│ Deploying: {:<35} │", step.name);
-            println!("└───────────────────────────────────────────────┘");
+            } else {
+                // Standard deployment for other steps with unlimited retries
+                println!(
+                    "\n┌─ Step {} of 7 ─────────────────────────────────┐",
+                    step.order
+                );
+                println!("│ Deploying: {:<35} │", step.name);
+                println!("└───────────────────────────────────────────────┘");
 
-            let _ = deploy_contract_with_unlimited_retries(step, &mut deployed_ids, &mut state).await;
+                let _ = deploy_contract_with_unlimited_retries(step, &mut deployed_ids, &mut state)
+                    .await;
+            }
         }
-    }
     }
 
     // For TokensOnly or Full mode with tokens, create tokens if Asset Factory was deployed or already exists
-    if matches!(deployment_mode, DeploymentMode::Full | DeploymentMode::TokensOnly) {
+    if matches!(
+        deployment_mode,
+        DeploymentMode::Full | DeploymentMode::TokensOnly
+    ) {
         if deployed_ids.contains_key("ASSET_FACTORY") || env::var("ASSET_FACTORY").is_ok() {
-            println!(
-                "\n┌─ Token Creation ───────────────────────────────┐"
-            );
-            println!(
-                "│ Creating Base Asset & Yield Asset Tokens      │"
-            );
+            println!("\n┌─ Token Creation ───────────────────────────────┐");
+            println!("│ Creating Base Asset & Yield Asset Tokens      │");
             println!("└───────────────────────────────────────────────┘");
 
             loop {
@@ -362,16 +395,32 @@ async fn main() -> Result<()> {
                         }
                         deployed_ids.insert("BASE_ASSET".to_string(), base_id.clone());
                         deployed_ids.insert("YIELD_ASSET".to_string(), yield_id.clone());
-                        let reserve_id = ContractId::from_solidity_address(base_id.as_str())?.to_string();
+                        let reserve_id =
+                            ContractId::from_solidity_address(base_id.as_str())?.to_string();
                         unsafe {
                             env::set_var("RESERVE_ASSET_ID", reserve_id.clone());
                         }
                         deployed_ids.insert("RESERVE_ASSET_ID".to_string(), reserve_id);
 
-                        update_token_status(&mut state, "BASE_ASSET", DeploymentStatus::Completed, Some(base_id.clone()));
-                        update_token_status(&mut state, "YIELD_ASSET", DeploymentStatus::Completed, Some(yield_id.clone()));
+                        update_token_status(
+                            &mut state,
+                            "BASE_ASSET",
+                            DeploymentStatus::Completed,
+                            Some(base_id.clone()),
+                        );
+                        update_token_status(
+                            &mut state,
+                            "YIELD_ASSET",
+                            DeploymentStatus::Completed,
+                            Some(yield_id.clone()),
+                        );
                         if let Some(reserve_id_val) = deployed_ids.get("RESERVE_ASSET_ID") {
-                            update_token_status(&mut state, "RESERVE_ASSET_ID", DeploymentStatus::Completed, Some(reserve_id_val.clone()));
+                            update_token_status(
+                                &mut state,
+                                "RESERVE_ASSET_ID",
+                                DeploymentStatus::Completed,
+                                Some(reserve_id_val.clone()),
+                            );
                         }
                         save_state(&state)?;
                         break;
@@ -390,21 +439,17 @@ async fn main() -> Result<()> {
             }
         } else if matches!(deployment_mode, DeploymentMode::TokensOnly) {
             println!("\n✗ Asset Factory contract not found!");
-            println!("  Deploy contracts first or ensure ASSET_FACTORY environment variable is set.");
+            println!(
+                "  Deploy contracts first or ensure ASSET_FACTORY environment variable is set."
+            );
             return Ok(());
         }
     }
 
     // Display summary
-    println!(
-        "\n╔════════════════════════════════════════╗"
-    );
-    println!(
-        "║        Deployment Summary              ║"
-    );
-    println!(
-        "╚════════════════════════════════════════╝\n"
-    );
+    println!("\n╔════════════════════════════════════════╗");
+    println!("║        Deployment Summary              ║");
+    println!("╚════════════════════════════════════════╝\n");
 
     println!("Deployed Contracts & Tokens:");
     for (env_var, contract_id) in &deployed_ids {
@@ -437,9 +482,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn create_tokens(
-    deployed_ids: &mut HashMap<String, String>,
-) -> Result<(String, String)> {
+async fn create_tokens(deployed_ids: &mut HashMap<String, String>) -> Result<(String, String)> {
     let mut wallet = ActionWallet::from_env();
 
     // Get Access Controller contract ID from deployed contracts or env
@@ -456,12 +499,8 @@ async fn create_tokens(
 
     // Create Base Asset
     println!("┌─ Creating Base Asset Token ────────────────┐");
-    let base_name: String = Input::new()
-        .with_prompt("Base Asset Name")
-        .interact()?;
-    let base_symbol: String = Input::new()
-        .with_prompt("Base Asset Symbol")
-        .interact()?;
+    let base_name: String = Input::new().with_prompt("Base Asset Name").interact()?;
+    let base_symbol: String = Input::new().with_prompt("Base Asset Symbol").interact()?;
 
     println!("  ⏳ Creating Base Asset...");
     let base_asset_result = wallet
@@ -475,38 +514,32 @@ async fn create_tokens(
         ))
         .await?;
 
-    let base_asset_address = if let ContractCallOutput::AssetFactory(
-        AssetFactoryFunctionOutput::CreateAsset(output),
-    ) = base_asset_result
-    {
-        println!("  ✓ Base Asset created!");
-        println!("  📋 Transaction ID: {}", output.transaction_id);
+    let base_asset_address =
+        if let ContractCallOutput::AssetFactory(AssetFactoryFunctionOutput::CreateAsset(output)) =
+            base_asset_result
+        {
+            println!("  ✓ Base Asset created!");
+            println!("  📋 Transaction ID: {}", output.transaction_id);
 
-        let asset_manager_address = output.output.as_ref().unwrap().asset_manager.clone();
-        println!("  🛠️  Asset Manager Address: {}", asset_manager_address);
+            let asset_manager_address = output.output.as_ref().unwrap().asset_manager.clone();
+            println!("  🛠️  Asset Manager Address: {}", asset_manager_address);
 
-        unsafe {
-            env::set_var("BASE_ASSET_MANAGER", asset_manager_address.clone());
-            deployed_ids.insert("BASE_ASSET_MANAGER".to_string(), asset_manager_address);
-        }
+            unsafe {
+                env::set_var("BASE_ASSET_MANAGER", asset_manager_address.clone());
+                deployed_ids.insert("BASE_ASSET_MANAGER".to_string(), asset_manager_address);
+            }
 
-        output.output.unwrap().token
-
-
-    } else {
-        anyhow::bail!("Unexpected response from Asset Factory")
-    };
+            output.output.unwrap().token
+        } else {
+            anyhow::bail!("Unexpected response from Asset Factory")
+        };
 
     println!("└────────────────────────────────────────────┘\n");
 
     // Create Yield Asset
     println!("┌─ Creating Yield Asset Token ───────────────┐");
-    let yield_name: String = Input::new()
-        .with_prompt("Yield Asset Name")
-        .interact()?;
-    let yield_symbol: String = Input::new()
-        .with_prompt("Yield Asset Symbol")
-        .interact()?;
+    let yield_name: String = Input::new().with_prompt("Yield Asset Name").interact()?;
+    let yield_symbol: String = Input::new().with_prompt("Yield Asset Symbol").interact()?;
 
     println!("  ⏳ Creating Yield Asset...");
     let yield_asset_result = wallet
@@ -520,28 +553,29 @@ async fn create_tokens(
         ))
         .await?;
 
-    let yield_asset_address = if let ContractCallOutput::AssetFactory(
-        AssetFactoryFunctionOutput::CreateAsset(output),
-    ) = yield_asset_result
-    {
-        println!("  ✓ Yield Asset created!");
-        println!("  📋 Transaction ID: {}", output.transaction_id);
+    let yield_asset_address =
+        if let ContractCallOutput::AssetFactory(AssetFactoryFunctionOutput::CreateAsset(output)) =
+            yield_asset_result
+        {
+            println!("  ✓ Yield Asset created!");
+            println!("  📋 Transaction ID: {}", output.transaction_id);
 
-        let asset_manager_address = output.output.as_ref().unwrap().asset_manager.clone();
-        println!("  🛠️  Asset Manager Address: {}", asset_manager_address);
+            let asset_manager_address = output.output.as_ref().unwrap().asset_manager.clone();
+            println!("  🛠️  Asset Manager Address: {}", asset_manager_address);
 
-        unsafe {
-            env::set_var("YIELD_ASSET_MANAGER", asset_manager_address.clone());
-            deployed_ids.insert("YIELD_ASSET_MANAGER".to_string(), asset_manager_address);
-        }
+            unsafe {
+                env::set_var("YIELD_ASSET_MANAGER", asset_manager_address.clone());
+                deployed_ids.insert("YIELD_ASSET_MANAGER".to_string(), asset_manager_address);
+            }
 
-        output.output.unwrap().token
-    } else {
-        anyhow::bail!("Unexpected response from Asset Factory")
-    };
+            output.output.unwrap().token
+        } else {
+            anyhow::bail!("Unexpected response from Asset Factory")
+        };
 
-    let reserve_asset_id = ContractId::from_solidity_address(base_asset_address.as_str())?.to_string();
-    unsafe  {
+    let reserve_asset_id =
+        ContractId::from_solidity_address(base_asset_address.as_str())?.to_string();
+    unsafe {
         env::set_var("RESERVE_ASSET_ID", reserve_asset_id.clone());
         println!("Reserve asset id set to {}", env::var("RESERVE_ASSET_ID")?);
     }
@@ -781,10 +815,7 @@ async fn deploy_contract_with_unlimited_retries(
 ) -> Result<bool> {
     loop {
         if !Confirm::new()
-            .with_prompt(format!(
-                "Deploy {} ({})?",
-                step.name, step.contract_name
-            ))
+            .with_prompt(format!("Deploy {} ({})?", step.name, step.contract_name))
             .interact()?
         {
             println!("  ⊘ Skipped {}", step.name);
@@ -795,15 +826,15 @@ async fn deploy_contract_with_unlimited_retries(
 
         println!("  ⏳ Loading contract...");
         match step.contract_name.as_str() {
-            "BridgedAssetIssuer" | "NativeAssetIssuer"=>{
-                let treasury_address: String = Input::new()
-                    .with_prompt("TREASURY_ADDRESS").interact()?;
-                
-                unsafe  {
+            "BridgedAssetIssuer" | "NativeAssetIssuer" => {
+                let treasury_address: String =
+                    Input::new().with_prompt("TREASURY_ADDRESS").interact()?;
+
+                unsafe {
                     env::set_var("TREASURY_ADDRESS", treasury_address);
                 }
-            },
-            _=>{
+            }
+            _ => {
                 // do nothing
             }
         }
@@ -830,12 +861,14 @@ async fn deploy_contract_with_unlimited_retries(
                     }
                     Err(e) => {
                         println!("  ✗ Deployment failed: {}", e);
-                        if !Confirm::new()
-                            .with_prompt("Retry deployment?")
-                            .interact()?
-                        {
+                        if !Confirm::new().with_prompt("Retry deployment?").interact()? {
                             println!("  Skipping to next step...");
-                            update_deployment_status(state, &step.env_var, DeploymentStatus::Failed, None);
+                            update_deployment_status(
+                                state,
+                                &step.env_var,
+                                DeploymentStatus::Failed,
+                                None,
+                            );
                             save_state(state)?;
                             return Ok(false);
                         }
@@ -845,10 +878,7 @@ async fn deploy_contract_with_unlimited_retries(
             }
             Err(e) => {
                 println!("  ✗ Failed to load contract: {}", e);
-                if !Confirm::new()
-                    .with_prompt("Retry deployment?")
-                    .interact()?
-                {
+                if !Confirm::new().with_prompt("Retry deployment?").interact()? {
                     println!("  Skipping to next step...");
                     update_deployment_status(state, &step.env_var, DeploymentStatus::Failed, None);
                     save_state(state)?;
