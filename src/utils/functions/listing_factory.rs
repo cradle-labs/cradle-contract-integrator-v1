@@ -17,10 +17,12 @@ pub struct CreateListing {
     pub shadow_asset: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum CradleListingFactoryFunctionsInput {
     CreateListing(CreateListing),
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum CradleListingFactoryFunctionsOutput {
     CreateListing(FunctionCallOutput<String>),
 }

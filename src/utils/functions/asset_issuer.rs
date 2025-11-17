@@ -1,81 +1,89 @@
-use std::str::FromStr;
-use std::time::Duration;
+use crate::utils::functions::FunctionCallOutput;
+use crate::utils::functions::commons::ContractFunctionProcessor;
+use crate::wallet::wallet::ActionWallet;
 use anyhow::anyhow;
 use hedera::{ContractExecuteTransaction, ContractFunctionParameters, ContractId, Hbar};
-use crate::utils::functions::commons::ContractFunctionProcessor;
-use crate::utils::functions::FunctionCallOutput;
-use crate::wallet::wallet::ActionWallet;
+use serde::{Deserialize, Serialize};
+use std::str::FromStr;
+use std::time::Duration;
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CreateAssetArgs {
     pub name: String,
     pub symbol: String,
     pub acl_contract: String,
     pub allow_list: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
-
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LockReservesArgs {
     pub user: String,
     pub amount: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ReleaseAssetArgs {
     pub user: String,
     pub symbol: String,
     pub mint_amount: u64,
     pub unlock_amount: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LockAssetArgs {
     pub user: String,
     pub asset: String,
     pub amount: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ReleaseReservesArgs {
     pub user: String,
-    pub symbol:String,
+    pub symbol: String,
     pub burn_amount: u64,
     pub release_amount: u64,
-    pub contract_id: String
+    pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum AssetIssuerFunctionsInput {
     CreateAsset(CreateAssetArgs),
     LockReserves(LockReservesArgs),
     ReleaseAsset(ReleaseAssetArgs),
     LockAsset(LockAssetArgs),
-    ReleaseReserves(ReleaseReservesArgs)
+    ReleaseReserves(ReleaseReservesArgs),
 }
 
-
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CreateAssetResult {
     pub asset_manager: String,
-    pub token: String
+    pub token: String,
 }
 
-
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum AssetIssuerFunctionsOutput {
     CreateAsset(FunctionCallOutput<CreateAssetResult>),
     LockReserves(FunctionCallOutput<()>),
     ReleaseAsset(FunctionCallOutput<()>),
     LockAsset(FunctionCallOutput<()>),
-    ReleaseReserves(FunctionCallOutput<()>)
+    ReleaseReserves(FunctionCallOutput<()>),
 }
 
-
 impl ContractFunctionProcessor<AssetIssuerFunctionsOutput> for AssetIssuerFunctionsInput {
-    async fn process(&self, wallet: &mut ActionWallet) -> anyhow::Result<AssetIssuerFunctionsOutput> {
+    async fn process(
+        &self,
+        wallet: &mut ActionWallet,
+    ) -> anyhow::Result<AssetIssuerFunctionsOutput> {
         let mut transaction = ContractExecuteTransaction::new();
 
         transaction.gas(10_000_000);
 
         match self {
-            AssetIssuerFunctionsInput::CreateAsset(args)=>{
+            AssetIssuerFunctionsInput::CreateAsset(args) => {
                 let contract_id = ContractId::from_str(args.contract_id.as_str())?;
                 transaction.contract_id(contract_id);
                 transaction.function("createAsset");
@@ -89,28 +97,34 @@ impl ContractFunctionProcessor<AssetIssuerFunctionsOutput> for AssetIssuerFuncti
 
                 transaction.function_parameters(params.to_bytes(Some("createAsset")));
 
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
                 let record = response.get_record(&mut wallet.client).await?;
-                let result = record.contract_function_result.ok_or_else(|| anyhow!("Failed to find contract result"))?;
-                let asset_manager = result.get_address(0).ok_or_else(|| anyhow!("Failed to find asset manager"))?;
-                let token_address = result.get_address(1).ok_or_else(|| anyhow!("Failed to find token address"))?;
-
-
+                let result = record
+                    .contract_function_result
+                    .ok_or_else(|| anyhow!("Failed to find contract result"))?;
+                let asset_manager = result
+                    .get_address(0)
+                    .ok_or_else(|| anyhow!("Failed to find asset manager"))?;
+                let token_address = result
+                    .get_address(1)
+                    .ok_or_else(|| anyhow!("Failed to find token address"))?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
                     output: Some(CreateAssetResult {
                         token: token_address,
-                        asset_manager
-                    })
+                        asset_manager,
+                    }),
                 };
 
                 Ok(AssetIssuerFunctionsOutput::CreateAsset(output))
-            },
-            AssetIssuerFunctionsInput::LockReserves(args)=>{
+            }
+            AssetIssuerFunctionsInput::LockReserves(args) => {
                 let contract_id = ContractId::from_str(args.contract_id.as_str())?;
                 transaction.contract_id(contract_id);
 
@@ -120,19 +134,20 @@ impl ContractFunctionProcessor<AssetIssuerFunctionsOutput> for AssetIssuerFuncti
                 params.add_uint256(amount);
                 transaction.function_with_parameters("lockReserves", &params);
 
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: None,
                 };
 
                 Ok(AssetIssuerFunctionsOutput::LockReserves(output))
-            },
-            AssetIssuerFunctionsInput::ReleaseAsset(args)=>{
-
+            }
+            AssetIssuerFunctionsInput::ReleaseAsset(args) => {
                 let contract_id = ContractId::from_str(args.contract_id.as_str())?;
                 transaction.contract_id(contract_id);
                 transaction.function("releaseAsset");
@@ -146,17 +161,19 @@ impl ContractFunctionProcessor<AssetIssuerFunctionsOutput> for AssetIssuerFuncti
                 params.add_uint256(unlock_amount);
                 transaction.function_parameters(params.to_bytes(Some("releaseAsset")));
 
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: None,
                 };
 
                 Ok(AssetIssuerFunctionsOutput::ReleaseAsset(output))
-            },
-            AssetIssuerFunctionsInput::LockAsset(args)=>{
+            }
+            AssetIssuerFunctionsInput::LockAsset(args) => {
                 let contract_id = ContractId::from_str(args.contract_id.as_str())?;
                 transaction.contract_id(contract_id);
                 transaction.function("releaseAsset");
@@ -168,17 +185,19 @@ impl ContractFunctionProcessor<AssetIssuerFunctionsOutput> for AssetIssuerFuncti
                 params.add_uint256(amount);
                 transaction.function_parameters(params.to_bytes(Some("lockAsset")));
 
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: None,
                 };
                 Ok(AssetIssuerFunctionsOutput::LockAsset(output))
-            },
-            AssetIssuerFunctionsInput::ReleaseReserves(args)=>{
+            }
+            AssetIssuerFunctionsInput::ReleaseReserves(args) => {
                 let contract_id = ContractId::from_str(args.contract_id.as_str())?;
                 transaction.contract_id(contract_id);
                 transaction.function("releaseAsset");
@@ -193,13 +212,15 @@ impl ContractFunctionProcessor<AssetIssuerFunctionsOutput> for AssetIssuerFuncti
                 params.add_uint256(release_amount);
                 transaction.function_parameters(params.to_bytes(Some("releaseReserves")));
 
-                let response = transaction.execute_with_timeout(&mut wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let receipt = response.get_receipt(&mut wallet.client).await?;
 
                 let output = FunctionCallOutput {
                     transaction_id: receipt.transaction_id.unwrap().to_string(),
-                    output: None
+                    output: None,
                 };
 
                 Ok(AssetIssuerFunctionsOutput::ReleaseAsset(output))

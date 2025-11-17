@@ -42,23 +42,24 @@ impl ListingStatus {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PurchaseInputArgs {
     pub buyer: String,
     pub amount: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ReturnAssetInputArgs {
     pub account: String,
     pub amount: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WithdrawToBeneficiaryInputArgs {
     pub amount: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum CradleNativeListingFunctionsInput {
     UpdateListingStatus(WithContractId<ListingStatus>),
     Purchase(WithContractId<PurchaseInputArgs>),
@@ -77,6 +78,7 @@ pub struct ListingStats {
     pub status: ListingStatus,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum CradleNativeListingFunctionsOutput {
     UpdateListingStatus(FunctionCallOutput<()>),
     Purchase(FunctionCallOutput<u64>),

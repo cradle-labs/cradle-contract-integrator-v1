@@ -1,30 +1,36 @@
+use crate::utils::functions::FunctionCallOutput;
+use crate::utils::functions::commons::ContractFunctionProcessor;
+use crate::wallet::wallet::ActionWallet;
 use hedera::{ContractExecuteTransaction, ContractFunctionParameters};
 use num_bigint::BigUint;
-use crate::utils::functions::FunctionCallOutput;
-use crate::wallet::wallet::ActionWallet;
-use crate::utils::functions::commons::ContractFunctionProcessor;
+use serde::{Deserialize, Serialize};
 use tokio::time::Duration;
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SettleOrderInputArgs {
     pub bidder: String,
     pub asker: String,
     pub bid_asset: String,
     pub ask_asset: String,
     pub bid_asset_amount: u64,
-    pub ask_asset_amount: u64
+    pub ask_asset_amount: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum OrderBookSettlerFunctionInput {
-    SettleOrder(SettleOrderInputArgs)
+    SettleOrder(SettleOrderInputArgs),
 }
 
-
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum OrderBookSettlerFunctionOutput {
-    SettleOrder(FunctionCallOutput<()>)
+    SettleOrder(FunctionCallOutput<()>),
 }
 
 impl ContractFunctionProcessor<OrderBookSettlerFunctionOutput> for OrderBookSettlerFunctionInput {
-    async fn process(&self, wallet: &mut ActionWallet) -> anyhow::Result<OrderBookSettlerFunctionOutput> {
+    async fn process(
+        &self,
+        wallet: &mut ActionWallet,
+    ) -> anyhow::Result<OrderBookSettlerFunctionOutput> {
         let contract_ids = wallet.get_contract_ids()?;
         let mut transaction = ContractExecuteTransaction::new();
         transaction.contract_id(contract_ids.orderbook_settler);
@@ -33,8 +39,7 @@ impl ContractFunctionProcessor<OrderBookSettlerFunctionOutput> for OrderBookSett
         let mut params = ContractFunctionParameters::new();
 
         match self {
-            OrderBookSettlerFunctionInput::SettleOrder(args)=>{
-
+            OrderBookSettlerFunctionInput::SettleOrder(args) => {
                 params.add_address(&args.bidder);
                 params.add_address(&args.asker);
                 params.add_address(&args.ask_asset);
@@ -48,11 +53,13 @@ impl ContractFunctionProcessor<OrderBookSettlerFunctionOutput> for OrderBookSett
 
                 transaction.function_with_parameters("settleOrder", &params);
 
-                let response = transaction.execute_with_timeout(&wallet.client, Duration::from_secs(180)).await?;
+                let response = transaction
+                    .execute_with_timeout(&wallet.client, Duration::from_secs(180))
+                    .await?;
 
                 let output = FunctionCallOutput {
                     transaction_id: response.transaction_id.to_string(),
-                    output: None
+                    output: None,
                 };
 
                 Ok(OrderBookSettlerFunctionOutput::SettleOrder(output))

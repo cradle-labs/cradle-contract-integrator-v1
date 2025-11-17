@@ -4,70 +4,84 @@ use crate::wallet::wallet::ActionWallet;
 use anyhow::anyhow;
 use hedera::{ContractCallQuery, ContractExecuteTransaction, ContractFunctionParameters, Hbar};
 use num_bigint::BigUint;
+use serde::{Deserialize, Serialize};
 use tokio::time::Duration;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CalculateCurrentDebtArgs {
     pub user_principal: u64,
     pub user_borrow_index: u64,
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CalculateCurrentDepositArgs {
     pub user_shares: u64,
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CalculateHealthFactorArgs {
     pub collateral_value: u64,
     pub borrowed_value: u64,
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UpdateOracleArgs {
     pub asset: String,
     pub multiplier: u64,
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetAssetMultiplierArgs {
     pub asset: String,
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetUserDepositPositon {
     pub user: String,
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetUserBorrowPosition {
     pub user: String,
     pub collateral_asset: String,
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetMaxBorrowAmount {
     pub collateral_amount: u64,
     pub collateral_asset: String,
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IsPositionLiquidatableArgs {
     pub user: String,
     pub collateral_asset: String,
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DepositArgs {
     pub user: String,
     pub amount: u64,
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WithdrawArgs {
     pub user: String,
     pub yield_token_amount: u64,
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BorrowArgs {
     pub user: String,
     pub collateral_amount: u64,
@@ -75,6 +89,7 @@ pub struct BorrowArgs {
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RepayArgs {
     pub user: String,
     pub collateralized_asset: String,
@@ -82,6 +97,7 @@ pub struct RepayArgs {
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LiquidateArgs {
     pub liquidator: String,
     pub borrower: String,
@@ -90,6 +106,7 @@ pub struct LiquidateArgs {
     pub contract_id: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum AssetLendingPoolFunctionsInput {
     GetUtilization(String),
     GetBorrowRate(String),
@@ -116,40 +133,49 @@ pub enum AssetLendingPoolFunctionsInput {
     GetTreasuryAccount(String),
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetUtilizationOutput {
     pub utilization: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetBorrowRateOutput {
     pub borrow_rate: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetSupplyRateOutput {
     pub supply_rate: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CalculateCurrentDebtOutput {
     pub current_debt: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CalculateCurrentDepositOutput {
     pub current_deposit: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CalculateHealthFactorOutput {
     pub health_factor: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetAssetMultiplierOutput {
     pub multiplier: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetUserDepositPositonOutput {
     pub yield_token_balance: u64,
     pub underlying_value: u64,
     pub current_supply_apy: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetUserBorrowPositionOutput {
     pub principal_borrowed: u64,
     pub current_dept: u64,
@@ -158,15 +184,18 @@ pub struct GetUserBorrowPositionOutput {
     pub borrow_index: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetMaxBorrowAmountOutput {
     pub max_borrow_amount: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IsPositionLiquidatableOutput {
     pub liquidatable: bool,
     pub health_factor: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetPoolStatsOutput {
     pub total_supplied: u64,
     pub total_borrowed: u64,
@@ -178,23 +207,28 @@ pub struct GetPoolStatsOutput {
     pub supply_index: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GetAccount {
     pub account: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BorrowResultArgs {
     pub borrow_index: u64,
     pub borrowed_amount: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RepayResultArgs {
     pub collateral_unlocked: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LiquidateResultArgs {
     pub obtained_collateral: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum AssetLendingPoolFunctionsOutput {
     GetUtilization(FunctionCallOutput<GetUtilizationOutput>),
     GetBorrowRate(FunctionCallOutput<GetBorrowRateOutput>),
