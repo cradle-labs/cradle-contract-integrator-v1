@@ -39,7 +39,7 @@ pub struct GetPoolResult {
     pub address: String,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct CreatePoolResults {
     pub address: String,
     pub contract_id: String,
