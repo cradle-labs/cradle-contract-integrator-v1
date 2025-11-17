@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::utils::functions::access_controller::{
     AccessControllerFunctionsInput, AccessControllerFunctionsOutput,
 };
@@ -47,17 +49,20 @@ pub mod cradle_native_listing;
 pub mod listing_factory;
 pub mod orderbook_settler;
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FunctionCallOutput<T> {
     pub transaction_id: String,
     pub output: Option<T>,
     // TODO: add additional fields that may be useful
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct WithContractId<Rest> {
     pub contract_id: String,
     pub rest: Option<Rest>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ContractCallInput {
     AccessController(AccessControllerFunctionsInput),
     CradleAccountFactory(CradleAccountFactoryFunctionsInput),
@@ -73,6 +78,7 @@ pub enum ContractCallInput {
     CradleNativeListing(CradleNativeListingFunctionsInput),
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ContractCallOutput {
     AccessController(AccessControllerFunctionsOutput),
     CradleAccountFactory(CradleAccountFactoryFunctionsOutput),
