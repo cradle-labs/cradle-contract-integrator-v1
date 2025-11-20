@@ -15,9 +15,7 @@ pub struct GetClientArgs {
 #[derive(Parser, Debug)]
 pub struct CradleAccountFactoryConstructor {
     #[clap(long, env)]
-    pub acl_contract: String,
-    #[clap(long, env)]
-    pub allow_list: u64,
+    pub access_controller_contract_id: String,
 }
 
 #[derive(Parser, Debug)]
@@ -25,9 +23,7 @@ pub struct AssetIssuerConstructor {
     #[clap(long, env)]
     pub treasury_address: String,
     #[clap(long, env)]
-    pub acl_contract: String,
-    #[clap(long, env)]
-    pub allow_list: u64,
+    pub access_controller_contract_id: String,
     #[clap(long, env)]
     pub base_asset: String,
 }
@@ -35,9 +31,7 @@ pub struct AssetIssuerConstructor {
 #[derive(Parser, Debug)]
 pub struct NativeAssetIssuerConstructor {
     #[clap(long, env)]
-    pub acl_contract: String,
-    #[clap(long, env)]
-    pub allow_list: u64,
+    pub access_controller_contract_id: String,
 }
 
 #[derive(Parser, Debug)]
@@ -61,27 +55,23 @@ pub struct AssetLendingPoolConstructor {
     #[clap(long, env)]
     pub lending: ContractId,
     #[clap(long, env)]
-    pub yield_asset: String,
-    #[clap(long, env)]
-    pub yield_asset_symbol: String,
-    #[clap(long, env)]
     pub lending_pool: String,
     #[clap(long, env)]
-    pub acl_contract: String,
+    pub access_controller_contract_id: String,
     #[clap(long, env)]
-    pub allow_list: u64,
+    pub yield_bearing_asset_manager: String,
 }
 
 #[derive(Parser, Debug)]
 pub struct DeployLendingPoolFactory {
     #[clap(long, env)]
-    pub acl_contract: String,
+    pub access_controller_contract_id: String,
 }
 
 #[derive(Parser, Debug)]
 pub struct DeployOrderBookSettler {
     #[clap(long, env)]
-    pub acl_contract: String,
+    pub access_controller_contract_id: String,
     #[clap(long, env)]
     pub order_book_treasury: String,
 }
@@ -93,7 +83,5 @@ pub struct BaseAssetConstructor {
     #[clap(long, env)]
     pub base_asset_symbol: String,
     #[clap(long, env)]
-    pub acl_contract: String,
-    #[clap(long, env)]
-    pub allow_list: u64,
+    pub access_controller_contract_id: String,
 }

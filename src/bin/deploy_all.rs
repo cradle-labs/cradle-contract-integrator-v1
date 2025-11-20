@@ -486,7 +486,7 @@ async fn create_tokens(deployed_ids: &mut HashMap<String, String>) -> Result<(St
     let mut wallet = ActionWallet::from_env();
 
     // Get Access Controller contract ID from deployed contracts or env
-    let acl_contract_str = deployed_ids
+    let acl_contract_str: String = deployed_ids
         .get("ACCESS_CONTROLLER_CONTRACT_ID")
         .cloned()
         .unwrap_or_else(|| env::var("ACCESS_CONTROLLER_CONTRACT_ID").unwrap_or_default());
@@ -713,6 +713,14 @@ fn create_initial_state() -> DeploymentState {
                 name: "Lending Pool Factory".to_string(),
                 contract_name: "LendingPoolFactory".to_string(),
                 env_var: "ASSET_LENDING_POOL_FACTORY".to_string(),
+                status: DeploymentStatus::Pending,
+                contract_id: None,
+            },
+            ContractDeploymentState {
+                order: 8,
+                name: "Listings Factory".to_string(),
+                contract_name: "CradleListingFactory".to_string(),
+                env_var: "CRADLE_LISTING_FACTORY_CONTRACT_ID".to_string(),
                 status: DeploymentStatus::Pending,
                 contract_id: None,
             },

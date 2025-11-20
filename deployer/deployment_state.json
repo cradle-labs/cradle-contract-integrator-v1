@@ -1,6 +1,6 @@
 {
-  "started_at": "2025-10-28T18:10:55.829953833+00:00",
-  "last_updated": "2025-11-14T13:15:47.743945+00:00",
+  "started_at": "2025-11-20T07:52:53.246266+00:00",
+  "last_updated": "2025-11-20T08:23:09.477408+00:00",
   "deployments": [
     {
       "order": 1,
@@ -8,7 +8,7 @@
       "contract_name": "AccessController",
       "env_var": "ACCESS_CONTROLLER_CONTRACT_ID",
       "status": "completed",
-      "contract_id": "0.0.7152824"
+      "contract_id": "0.0.7290648"
     },
     {
       "order": 2,
@@ -16,7 +16,7 @@
       "contract_name": "AssetFactory",
       "env_var": "ASSET_FACTORY",
       "status": "completed",
-      "contract_id": "0.0.7152885"
+      "contract_id": "0.0.7290655"
     },
     {
       "order": 3,
@@ -24,7 +24,7 @@
       "contract_name": "CradleAccountFactory",
       "env_var": "CRADLE_ACCOUNT_FACTORY_CONTRACT_ID",
       "status": "completed",
-      "contract_id": "0.0.7152899"
+      "contract_id": "0.0.7290662"
     },
     {
       "order": 4,
@@ -32,7 +32,7 @@
       "contract_name": "BridgedAssetIssuer",
       "env_var": "BRIDGED_ASSET_ISSUER_CONTRACT_ID",
       "status": "completed",
-      "contract_id": "0.0.7163074"
+      "contract_id": "0.0.7290763"
     },
     {
       "order": 5,
@@ -40,7 +40,7 @@
       "contract_name": "NativeAssetIssuer",
       "env_var": "NATIVE_ASSET_ISSUER_CONTRACT_ID",
       "status": "completed",
-      "contract_id": "0.0.7152994"
+      "contract_id": "0.0.7291175"
     },
     {
       "order": 6,
@@ -48,7 +48,7 @@
       "contract_name": "CradleOrderBookSettler",
       "env_var": "CRADLE_ORDER_BOOK_SETTLER_CONTRACT_ID",
       "status": "completed",
-      "contract_id": "0.0.7259015"
+      "contract_id": "0.0.7291292"
     },
     {
       "order": 7,
@@ -56,7 +56,7 @@
       "contract_name": "LendingPoolFactory",
       "env_var": "ASSET_LENDING_POOL_FACTORY",
       "status": "completed",
-      "contract_id": "0.0.7168598"
+      "contract_id": "0.0.7291375"
     },
     {
       "order": 8,
@@ -64,24 +64,24 @@
       "contract_name": "CradleListingFactory",
       "env_var": "CRADLE_LISTING_FACTORY_CONTRACT_ID",
       "status": "completed",
-      "contract_id": "0.0.7256261"
+      "contract_id": "0.0.7291512"
     }
   ],
   "tokens": [
     {
       "name": "BASE_ASSET",
       "status": "completed",
-      "id": "00000000000000000000000000000000006d2522"
+      "id": "00000000000000000000000000000000006f42a0"
     },
     {
       "name": "YIELD_ASSET",
       "status": "completed",
-      "id": "00000000000000000000000000000000006d2525"
+      "id": "00000000000000000000000000000000006f42ae"
     },
     {
       "name": "RESERVE_ASSET_ID",
       "status": "completed",
-      "id": "0.0.7152930"
+      "id": "0.0.7291552"
     }
   ]
 }

@@ -42,7 +42,7 @@ impl ContractFunctionProcessor<CradleListingFactoryFunctionsOutput>
 
         match self {
             CradleListingFactoryFunctionsInput::CreateListing(args) => {
-                transaction.contract_id(contract_ids.cradle_listing_factory);
+                transaction.contract_id(contract_ids.cradle_listing_factory_contract_id);
 
                 let mut params = ContractFunctionParameters::new();
 
