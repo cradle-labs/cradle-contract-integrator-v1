@@ -1,3 +1,4 @@
+use crate::id_to_address;
 use crate::utils::functions::access_controller::{
     AccessControllerArgs, AccessControllerFunctionsInput, AccessControllerFunctionsOutput,
 };
@@ -5,21 +6,21 @@ use crate::utils::functions::{ContractCallInput, ContractCallOutput};
 use crate::utils::script_utils::BaseAssetConstructor;
 use crate::utils::script_utils::DeployOrderBookSettler;
 use crate::utils::script_utils::{
-    AssetIssuerConstructor, AssetLendingPoolConstructor, CradleAccountFactoryConstructor,
-    DeployLendingPoolFactory, GetClientArgs, NativeAssetIssuerConstructor,
+    AssetIssuerConstructor, AssetLendingPoolConstructor, DeployLendingPoolFactory, GetClientArgs,
+    NativeAssetIssuerConstructor,
 };
 use crate::wallet::wallet::ActionWallet;
 use anyhow::{Result, format_err};
-use chrono::Utc;
 use clap::Parser;
 use hedera::{
-    Client, ContractCreateFlow, ContractCreateTransaction, ContractFunctionParameters, ContractId,
+    Client, ContractCreateTransaction, ContractFunctionParameters, ContractId,
     FileAppendTransaction, FileCreateTransaction, FileId, Hbar,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::Path;
+use std::str::FromStr;
 use std::{env, fs};
 use time::{Duration, OffsetDateTime};
 use tokio::time::{Duration as TokioDuration, sleep};
@@ -113,41 +114,45 @@ impl Contract {
         let values = match self.name.as_str() {
             "AccessController" => params,
             "AssetFactory" => {
-                let acl_contract = env::var("ACL_CONTRACT")?;
+                let id_str = env::var("ACCESS_CONTROLLER_CONTRACT_ID")?;
+                let address = id_to_address!(id_str);
 
-                params.add_address(acl_contract.as_str());
+                params.add_address(&address);
                 params
             }
             "CradleAccountFactory" => {
-                let args = CradleAccountFactoryConstructor::try_parse()?;
-                params.add_address(&args.acl_contract);
-                params.add_uint64(args.allow_list);
+                let address = id_to_address!(env::var("ACCESS_CONTROLLER_CONTRACT_ID")?);
+                params.add_address(&address);
+                params.add_uint64(1);
 
                 params
             }
             "BaseAsset" => {
                 let args = BaseAssetConstructor::try_parse()?;
+                let address = id_to_address!(args.access_controller_contract_id);
                 params.add_string(&args.base_asset_name);
                 params.add_string(&args.base_asset_symbol);
-                params.add_address(&args.acl_contract);
-                params.add_uint64(args.allow_list);
+                params.add_address(&address);
+                params.add_uint64(1);
 
                 params
             }
             "BridgedAssetIssuer" => {
                 let args = AssetIssuerConstructor::try_parse()?;
+                let acl_contract_address = id_to_address!(args.access_controller_contract_id);
                 params.add_address(&args.treasury_address);
-                params.add_address(&args.acl_contract);
-                params.add_uint64(args.allow_list);
+                params.add_address(&acl_contract_address);
+                params.add_uint64(0);
                 params.add_address(&args.base_asset);
 
                 params
             }
             "NativeAssetIssuer" => {
                 let args = AssetIssuerConstructor::try_parse()?;
+                let address = id_to_address!(args.access_controller_contract_id);
                 params.add_address(&args.treasury_address);
-                params.add_address(&args.acl_contract);
-                params.add_uint64(args.allow_list);
+                params.add_address(&address);
+                params.add_uint64(0);
                 params.add_address(&args.base_asset);
 
                 params
@@ -157,15 +162,17 @@ impl Contract {
 
                 println!("Native asset deployment args: {:?}", args);
 
+                let address = id_to_address!(args.access_controller_contract_id);
                 params.add_string("Cradle Native Reserve");
                 params.add_string("CNR");
-                params.add_address(&args.acl_contract);
-                params.add_uint64(args.allow_list);
+                params.add_address(&address);
+                params.add_uint64(1);
 
                 params
             }
             "AssetLendingPool" => {
                 let args = AssetLendingPoolConstructor::try_parse()?;
+                let address = id_to_address!(args.access_controller_contract_id);
                 params.add_uint64(args.ltv); // ltv
                 params.add_uint64(args.optimal_utilization); // optimal utilization
                 params.add_uint64(args.base_rate); // base rate
@@ -175,33 +182,34 @@ impl Contract {
                 params.add_uint64(args.liquidation_discount); // liquidation discount
                 params.add_uint64(args.reserve_factor); // reserve factor
                 params.add_address(&args.lending.to_solidity_address()?); // lending
-                params.add_string(&args.yield_asset); // yield asset
-                params.add_string(&args.yield_asset_symbol); // yield asset symbol
+                params.add_string(&args.yield_bearing_asset_manager); // yield asset manager
                 params.add_string(&args.lending_pool); // lending pool
-                params.add_address(&args.acl_contract); // aclContract
-                params.add_uint64(args.allow_list); // allow list
+                params.add_address(&address); // aclContract
+                params.add_uint64(0); // allow list
 
                 params
             }
             "LendingPoolFactory" => {
                 let args = DeployLendingPoolFactory::try_parse()?;
-
-                params.add_address(args.acl_contract.as_str());
+                let address = id_to_address!(args.access_controller_contract_id);
+                params.add_address(&address);
 
                 params
             }
             "CradleOrderBookSettler" => {
                 let args = DeployOrderBookSettler::try_parse()?;
 
-                params.add_address(args.acl_contract.as_str());
+                let address = id_to_address!(args.access_controller_contract_id);
+                params.add_address(&address);
                 params.add_address(&args.order_book_treasury);
 
                 params
             }
             "CradleListingFactory" => {
                 let args = DeployLendingPoolFactory::try_parse()?;
+                let address = id_to_address!(args.access_controller_contract_id);
 
-                params.add_address(&args.acl_contract);
+                params.add_address(&address);
 
                 params
             }

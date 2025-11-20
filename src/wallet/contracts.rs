@@ -12,13 +12,11 @@ pub struct CradleContractIds {
     #[clap(long, env)]
     pub cradle_account_factory_contract_id: ContractId,
     #[clap(long, env)]
-    pub asset_lending_pool_contract_id: ContractId,
-    #[clap(long, env)]
     pub asset_factory: ContractId,
     #[clap(long, env)]
-    pub orderbook_settler: ContractId,
+    pub cradle_order_book_settler_contract_id: ContractId,
     #[clap(long, env)]
     pub asset_lending_pool_factory: ContractId,
     #[clap(long, env)]
-    pub cradle_listing_factory: ContractId,
+    pub cradle_listing_factory_contract_id: ContractId,
 }

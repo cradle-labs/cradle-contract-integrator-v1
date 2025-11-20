@@ -48,8 +48,6 @@ impl ContractFunctionProcessor<AssetFactoryFunctionOutput> for AssetFactoryFunct
                 transaction.payable_amount(Hbar::new(50));
                 params.add_string(&args.name);
                 params.add_string(&args.symbol);
-                params.add_address(&args.acl_contract);
-                params.add_uint64(args.allow_list);
 
                 transaction.function_parameters(params.to_bytes(Some("createAsset")));
 

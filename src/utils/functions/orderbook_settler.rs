@@ -33,7 +33,7 @@ impl ContractFunctionProcessor<OrderBookSettlerFunctionOutput> for OrderBookSett
     ) -> anyhow::Result<OrderBookSettlerFunctionOutput> {
         let contract_ids = wallet.get_contract_ids()?;
         let mut transaction = ContractExecuteTransaction::new();
-        transaction.contract_id(contract_ids.orderbook_settler);
+        transaction.contract_id(contract_ids.cradle_order_book_settler_contract_id);
         transaction.gas(5_000_000);
 
         let mut params = ContractFunctionParameters::new();
