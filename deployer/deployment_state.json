@@ -1,6 +1,6 @@
 {
   "started_at": "2025-11-20T07:52:53.246266+00:00",
-  "last_updated": "2025-11-20T08:23:09.477408+00:00",
+  "last_updated": "2025-11-21T06:45:32.825101+00:00",
   "deployments": [
     {
       "order": 1,
@@ -56,7 +56,7 @@
       "contract_name": "LendingPoolFactory",
       "env_var": "ASSET_LENDING_POOL_FACTORY",
       "status": "completed",
-      "contract_id": "0.0.7291375"
+      "contract_id": "0.0.7299274"
     },
     {
       "order": 8,
@@ -64,7 +64,7 @@
       "contract_name": "CradleListingFactory",
       "env_var": "CRADLE_LISTING_FACTORY_CONTRACT_ID",
       "status": "completed",
-      "contract_id": "0.0.7291512"
+      "contract_id": "0.0.7296560"
     }
   ],
   "tokens": [

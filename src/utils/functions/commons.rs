@@ -1,14 +1,15 @@
 use crate::wallet::wallet::ActionWallet;
 use anyhow::Result;
-use hedera::{AccountBalance, AccountBalanceQuery, AccountId, Client, ContractId, ContractInfoQuery};
+use hedera::{
+    AccountBalance, AccountBalanceQuery, AccountId, Client, ContractId, ContractInfoQuery,
+};
 use serde_json::json;
 use std::str::FromStr;
 use tokio::time::{Duration, sleep};
 
 pub trait ContractFunctionProcessor<Output> {
-    async fn process(&self, wallet: &mut ActionWallet)->Result<Output>;
+    async fn process(&self, wallet: &mut ActionWallet) -> Result<Output>;
 }
-
 
 pub async fn get_contract_id_from_evm_address(evm_address: &str) -> Result<ContractId> {
     sleep(Duration::from_secs(10)).await;
@@ -29,10 +30,11 @@ pub async fn get_contract_id_from_evm_address(evm_address: &str) -> Result<Contr
             Ok(response) => {
                 match response.json::<serde_json::Value>().await {
                     Ok(body) => {
-                        println!("Body {:?}", body.clone());
-
-                        if let Some(contract_id_str) = body.get("contract_id").and_then(|v| v.as_str()) {
+                        if let Some(contract_id_str) =
+                            body.get("contract_id").and_then(|v| v.as_str())
+                        {
                             let contract_id = ContractId::from_str(contract_id_str)?;
+                            println!("Extracted contract id :: {}", contract_id_str);
                             return Ok(contract_id);
                         } else {
                             // Response was valid but missing contract_id - don't retry
@@ -45,32 +47,46 @@ pub async fn get_contract_id_from_evm_address(evm_address: &str) -> Result<Contr
                     Err(e) if attempt < MAX_RETRIES => {
                         // Failed to parse JSON - retry with exponential backoff
                         let backoff_secs = 2u64.pow(attempt - 1);
-                        println!("Attempt {} failed to parse response: {}. Retrying in {} seconds...", attempt, e, backoff_secs);
+                        println!(
+                            "Attempt {} failed to parse response: {}. Retrying in {} seconds...",
+                            attempt, e, backoff_secs
+                        );
                         sleep(Duration::from_secs(backoff_secs)).await;
                         continue;
                     }
                     Err(e) => {
                         // Max retries exceeded
-                        anyhow::bail!("Failed to get contract_id after {} attempts: {}", MAX_RETRIES, e)
+                        anyhow::bail!(
+                            "Failed to get contract_id after {} attempts: {}",
+                            MAX_RETRIES,
+                            e
+                        )
                     }
                 }
             }
             Err(e) if attempt < MAX_RETRIES => {
                 // Request failed - retry with exponential backoff
                 let backoff_secs = 2u64.pow(attempt - 1);
-                println!("Attempt {} failed to fetch: {}. Retrying in {} seconds...", attempt, e, backoff_secs);
+                println!(
+                    "Attempt {} failed to fetch: {}. Retrying in {} seconds...",
+                    attempt, e, backoff_secs
+                );
                 sleep(Duration::from_secs(backoff_secs)).await;
                 continue;
             }
             Err(e) => {
                 // Max retries exceeded
-                anyhow::bail!("Failed to fetch contract after {} attempts: {}", MAX_RETRIES, e)
+                anyhow::bail!(
+                    "Failed to fetch contract after {} attempts: {}",
+                    MAX_RETRIES,
+                    e
+                )
             }
         }
     }
 }
 
-pub async fn get_account_balances(client: &Client,account_id: &str)->Result<AccountBalance> {
+pub async fn get_account_balances(client: &Client, account_id: &str) -> Result<AccountBalance> {
     let account_value = AccountId::from_str(account_id)?;
     let mut q = AccountBalanceQuery::new();
     q.account_id(account_value);
