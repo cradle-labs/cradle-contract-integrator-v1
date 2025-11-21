@@ -869,7 +869,7 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                     }),
                 };
 
-                Ok(AssetLendingPoolFunctionsOutput::GetReserveAccount(output))
+                Ok(AssetLendingPoolFunctionsOutput::GetTreasuryAccount(output))
             }
         }
     }
