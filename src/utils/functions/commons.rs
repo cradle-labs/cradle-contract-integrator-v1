@@ -1,5 +1,5 @@
 use crate::wallet::wallet::ActionWallet;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use hedera::{
     AccountBalance, AccountBalanceQuery, AccountId, Client, ContractId, ContractInfoQuery,
 };
@@ -9,6 +9,26 @@ use tokio::time::{Duration, sleep};
 
 pub trait ContractFunctionProcessor<Output> {
     async fn process(&self, wallet: &mut ActionWallet) -> Result<Output>;
+}
+
+pub async fn get_contract_addresses(contract_id: &str) -> Result<String> {
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://testnet.mirrornode.hedera.com/api/v1/contracts/{}",
+        contract_id
+    );
+
+    let response = client.get(&url).send().await?;
+
+    let body = response.json::<serde_json::Value>().await?;
+
+    let evm_address = body
+        .get("evm_address")
+        .ok_or_else(|| anyhow!("Failed to extract"))?
+        .as_str()
+        .ok_or_else(|| anyhow!("Unable to retrieve str"))?;
+
+    Ok(String::from(evm_address))
 }
 
 pub async fn get_contract_id_from_evm_address(evm_address: &str) -> Result<ContractId> {
