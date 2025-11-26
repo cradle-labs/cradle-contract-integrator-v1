@@ -12,3 +12,10 @@ macro_rules! id_to_address {
     }};
 }
 
+#[macro_export]
+macro_rules! id_to_evm_address {
+    ($contract_id: literal) => {
+        let evm_address = get_contract_address($contract_id)?;
+        evm_address
+    };
+}
