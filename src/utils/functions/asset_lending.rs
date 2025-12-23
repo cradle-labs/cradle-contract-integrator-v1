@@ -2,6 +2,7 @@ use crate::utils::functions::FunctionCallOutput;
 use crate::utils::functions::commons::ContractFunctionProcessor;
 use crate::wallet::wallet::ActionWallet;
 use anyhow::anyhow;
+use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
 use hedera::{ContractCallQuery, ContractExecuteTransaction, ContractFunctionParameters, Hbar};
 use num_bigint::BigUint;
 use serde::{Deserialize, Serialize};
@@ -530,12 +531,12 @@ impl ContractFunctionProcessor<AssetLendingPoolFunctionsOutput> for AssetLending
                 query_transaction.function_with_parameters("getUserBorrowPosition", &params);
 
                 let response = query_transaction
-                    .execute_with_timeout(&mut wallet.client, Duration::from_secs(180))
+                    .execute_with_timeout(&wallet.client, Duration::from_secs(180))
                     .await?;
                 let principal_borrowed: u64 = response.get_u256(0).unwrap().try_into()?;
                 let current_dept: u64 = response.get_u256(1).unwrap().try_into()?;
                 let collateral_amount: u64 = response.get_u256(2).unwrap().try_into()?;
-                let health_factor: u64 = response.get_u256(3).unwrap().try_into()?;
+                let health_factor: u64 = response.get_u256(3).unwrap().try_into().unwrap_or(1_u64);
                 let borrow_index: u64 = response.get_u256(4).unwrap().try_into()?;
 
                 let output = FunctionCallOutput {
