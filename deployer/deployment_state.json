@@ -1,6 +1,6 @@
 {
   "started_at": "2025-11-20T07:52:53.246266+00:00",
-  "last_updated": "2025-11-25T08:00:49.197470+00:00",
+  "last_updated": "2025-11-26T11:59:13.121505+00:00",
   "deployments": [
     {
       "order": 1,
@@ -16,7 +16,7 @@
       "contract_name": "AssetFactory",
       "env_var": "ASSET_FACTORY",
       "status": "completed",
-      "contract_id": "0.0.7290655"
+      "contract_id": "0.0.7327968"
     },
     {
       "order": 3,
@@ -56,7 +56,7 @@
       "contract_name": "LendingPoolFactory",
       "env_var": "ASSET_LENDING_POOL_FACTORY",
       "status": "completed",
-      "contract_id": "0.0.7318828"
+      "contract_id": "0.0.7327994"
     },
     {
       "order": 8,

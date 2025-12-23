@@ -148,3 +148,6 @@ impl ContractFunctionProcessor<ContractCallOutput> for ContractCallInput {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
