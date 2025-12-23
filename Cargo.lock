@@ -480,7 +480,7 @@ dependencies = [
  "diesel-derive-enum",
  "dotenv",
  "dotenvy",
- "hedera",
+ "hiero-sdk",
  "log",
  "num-bigint",
  "protoc",
@@ -736,7 +736,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -974,9 +974,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
-name = "hedera"
-version = "0.40.0"
-source = "git+https://github.com/hiero-ledger/hiero-sdk-rust.git#e6218cc0ad25cd72c7d367c66da351d082871dfe"
+name = "hex"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "hiero-sdk"
+version = "0.43.0"
+source = "git+https://github.com/hiero-ledger/hiero-sdk-rust.git#5804211bdbcb6de142d5147dc5613fc0c317624c"
 dependencies = [
  "aes",
  "arc-swap",
@@ -989,8 +995,8 @@ dependencies = [
  "futures-core",
  "futures-util",
  "h2 0.4.12",
- "hedera-proto",
  "hex",
+ "hiero-sdk-proto",
  "hmac",
  "hyper 1.7.0",
  "hyper-openssl",
@@ -1027,9 +1033,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "hedera-proto"
-version = "0.19.0"
-source = "git+https://github.com/hiero-ledger/hiero-sdk-rust.git#e6218cc0ad25cd72c7d367c66da351d082871dfe"
+name = "hiero-sdk-proto"
+version = "0.20.0"
+source = "git+https://github.com/hiero-ledger/hiero-sdk-rust.git#5804211bdbcb6de142d5147dc5613fc0c317624c"
 dependencies = [
  "anyhow",
  "fraction",
@@ -1041,12 +1047,6 @@ dependencies = [
  "tonic",
  "tonic-build",
 ]
-
-[[package]]
-name = "hex"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hmac"
@@ -1924,7 +1924,7 @@ version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
- "heck 0.5.0",
+ "heck 0.4.1",
  "itertools",
  "log",
  "multimap",
@@ -2253,7 +2253,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2616,7 +2616,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.2",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
