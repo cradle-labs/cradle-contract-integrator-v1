@@ -107,7 +107,7 @@ pub struct LiquidateArgs {
     pub contract_id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum AssetLendingPoolFunctionsInput {
     GetUtilization(String),
     GetBorrowRate(String),
@@ -229,7 +229,7 @@ pub struct LiquidateResultArgs {
     pub obtained_collateral: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum AssetLendingPoolFunctionsOutput {
     GetUtilization(FunctionCallOutput<GetUtilizationOutput>),
     GetBorrowRate(FunctionCallOutput<GetBorrowRateOutput>),
