@@ -62,7 +62,7 @@ pub struct WithContractId<Rest> {
     pub rest: Option<Rest>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum ContractCallInput {
     AccessController(AccessControllerFunctionsInput),
     CradleAccountFactory(CradleAccountFactoryFunctionsInput),
@@ -78,7 +78,7 @@ pub enum ContractCallInput {
     CradleNativeListing(CradleNativeListingFunctionsInput),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum ContractCallOutput {
     AccessController(AccessControllerFunctionsOutput),
     CradleAccountFactory(CradleAccountFactoryFunctionsOutput),
