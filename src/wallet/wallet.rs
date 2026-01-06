@@ -29,7 +29,13 @@ pub struct ActionWallet {
 impl ActionWallet {
     pub fn new(account_id: String, key: String, network: String) -> Self {
         let operator_account_id = AccountId::from_str(&account_id).unwrap();
-        let operator_key = PrivateKey::from_str_ecdsa(&key).unwrap();
+        let use_ed25519 =
+            std::env::var("USE_ED25519").unwrap_or(String::from("false")) == String::from("true");
+        let operator_key = if use_ed25519 {
+            PrivateKey::from_str(&key).unwrap()
+        } else {
+            PrivateKey::from_str_ecdsa(&key).unwrap()
+        };
 
         let client = Client::for_name(&network).unwrap();
         client.set_operator(operator_account_id.clone(), operator_key.clone());

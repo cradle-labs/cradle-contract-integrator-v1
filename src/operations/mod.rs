@@ -8,4 +8,6 @@ pub mod cradle_account;
 pub mod cradle_account_factory;
 pub mod cradle_native_listing;
 pub mod listing_factory;
+pub mod bridged_asset_issuer_factory;
+pub mod native_asset_issuer_factory;
 pub mod orderbook_settler;

@@ -18,6 +18,9 @@ use crate::utils::functions::asset_lending_pool_factory::{
 use crate::utils::functions::asset_manager::{
     AssetManagerFunctionInput, AssetManagerFunctionOutput,
 };
+use crate::utils::functions::bridged_asset_issuer_factory::{
+    BridgedAssetIssuerFactoryFunctionsInput, BridgedAssetIssuerFactoryFunctionsOutput,
+};
 use crate::utils::functions::commons::ContractFunctionProcessor;
 use crate::utils::functions::cradle_account::{
     CradleAccountFunctionInput, CradleAccountFunctionOutput,
@@ -31,6 +34,9 @@ use crate::utils::functions::cradle_native_listing::{
 use crate::utils::functions::listing_factory::{
     CradleListingFactoryFunctionsInput, CradleListingFactoryFunctionsOutput,
 };
+use crate::utils::functions::native_asset_issuer_factory::{
+    NativeAssetIssuerFactoryFunctionsInput, NativeAssetIssuerFactoryFunctionsOutput,
+};
 use crate::utils::functions::orderbook_settler::{
     OrderBookSettlerFunctionInput, OrderBookSettlerFunctionOutput,
 };
@@ -42,11 +48,13 @@ pub mod asset_issuer;
 pub mod asset_lending;
 pub mod asset_lending_pool_factory;
 pub mod asset_manager;
+pub mod bridged_asset_issuer_factory;
 pub mod commons;
 pub mod cradle_account;
 pub mod cradle_account_factory;
 pub mod cradle_native_listing;
 pub mod listing_factory;
+pub mod native_asset_issuer_factory;
 pub mod orderbook_settler;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -76,6 +84,9 @@ pub enum ContractCallInput {
     AssetLendingPoolFactory(AssetLendingPoolFactoryFunctionInput),
     CradleListingFactory(CradleListingFactoryFunctionsInput),
     CradleNativeListing(CradleNativeListingFunctionsInput),
+
+    BridgedAssetIssuerFactory(BridgedAssetIssuerFactoryFunctionsInput),
+    NativeAssetIssuerFactory(NativeAssetIssuerFactoryFunctionsInput),
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -92,6 +103,9 @@ pub enum ContractCallOutput {
     AssetLendingPoolFactory(AssetLendingPoolFactoryFunctionOutput),
     CradleListingFactory(CradleListingFactoryFunctionsOutput),
     CradleNativeListing(CradleNativeListingFunctionsOutput),
+
+    BridgedAssetIssuerFactory(BridgedAssetIssuerFactoryFunctionsOutput),
+    NativeAssetIssuerFactory(NativeAssetIssuerFactoryFunctionsOutput),
 }
 
 impl ContractFunctionProcessor<ContractCallOutput> for ContractCallInput {
@@ -144,6 +158,15 @@ impl ContractFunctionProcessor<ContractCallOutput> for ContractCallInput {
             ContractCallInput::CradleNativeListing(args) => {
                 let output = args.process(wallet).await?;
                 Ok(ContractCallOutput::CradleNativeListing(output))
+            }
+
+            ContractCallInput::BridgedAssetIssuerFactory(args) => {
+                let output = args.process(wallet).await?;
+                Ok(ContractCallOutput::BridgedAssetIssuerFactory(output))
+            }
+            ContractCallInput::NativeAssetIssuerFactory(args) => {
+                let output = args.process(wallet).await?;
+                Ok(ContractCallOutput::NativeAssetIssuerFactory(output))
             }
         }
     }
