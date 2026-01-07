@@ -37,6 +37,11 @@ impl ActionWallet {
             PrivateKey::from_str_ecdsa(&key).unwrap()
         };
 
+        println!(
+            "Public key :: {:?}",
+            operator_key.public_key().to_evm_address()
+        );
+
         let client = Client::for_name(&network).unwrap();
         client.set_operator(operator_account_id.clone(), operator_key.clone());
 
